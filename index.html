@@ -43,6 +43,8 @@
       overflow: hidden; background: #000; min-height: 250px;
     }
     #reader video { width: 100% !important; height: auto !important; }
+    #reader.mirror video { transform: scaleX(-1); }
+    #camSelect { background-color: rgba(10, 5, 5, 0.85); color: #fff; border: 1px solid rgba(255, 193, 7, 0.7); }
     #file-reader { position: absolute; left: -9999px; width: 300px; height: 300px; }
     .result-box {
       font-family: 'Orbitron', sans-serif; font-size: 1.15rem;
@@ -62,6 +64,7 @@
   <header class="top-header p-3 text-center">
     <h3 class="m-0"><i class="fa-solid fa-mobile-screen me-2"></i>PHONE QR SCANNER</h3>
     <small>Mega Prime Foods Inc. - Break Time Logger</small>
+    <div><small class="text-warning">v6</small></div>
   </header>
 
   <div class="container py-3 my-auto">
@@ -73,17 +76,25 @@
 
           <div id="reader" class="mb-3"></div>
           <div id="file-reader"></div>
+          <div id="camInfo" class="small text-warning mb-2"></div>
 
           <button id="btnStart" class="btn btn-danger w-100 btn-mobile mb-2" onclick="startCamera()">
             <i class="fa-solid fa-camera me-2"></i>TAP TO OPEN PHONE CAMERA
           </button>
+          <button id="btnSwitch" class="btn btn-warning w-100 mb-2 d-none" onclick="switchCamera()">
+            <i class="fa-solid fa-camera-rotate me-2"></i><span id="switchLabel">Switch Camera</span>
+          </button>
+          <div id="camPicker" class="text-start mb-2 d-none">
+            <label class="form-label small text-warning mb-1"><i class="fa-solid fa-video me-1"></i>Choose camera</label>
+            <select id="camSelect" class="form-select" onchange="chooseCamera(this.value)"></select>
+          </div>
           <button id="btnStop" class="btn btn-outline-light w-100 mb-2 d-none" onclick="stopCamera()">
             <i class="fa-solid fa-stop me-2"></i>Stop Camera
           </button>
 
           <label class="btn btn-outline-warning w-100 mb-3">
             <i class="fa-solid fa-image me-2"></i>Camera not working? Take a photo of the QR
-            <input type="file" id="qrPhoto" accept="image/*" capture="environment" hidden onchange="scanPhoto(this)">
+            <input type="file" id="qrPhoto" accept="image/*" capture="user" hidden onchange="scanPhoto(this)">
           </label>
 
           <div class="mt-2 text-start border-top border-secondary pt-3">
@@ -103,11 +114,14 @@
 
   <script>
     // PASTE YOUR APPS SCRIPT /exec URL HERE
-    const API_URL = "https://script.google.com/a/macros/megasardines.com/s/AKfycby5_30Te50gyAWRbhWNZmH_uWlKtDSy_IT2R7y7SuRjec79Uh2p6ofoOtrzv7vDYDXPvw/exec";
+    const API_URL = "https://script.google.com/macros/s/PASTE_YOUR_ID_HERE/exec";
 
     let scanner = null;       // live camera scanner
     let fileScanner = null;   // photo scanner
     let busy = false, cameraOn = false, restartOnReturn = false;
+    // "user" = FRONT camera, "environment" = BACK camera
+    let facing = "user";   // always open the FRONT camera first
+    try { localStorage.removeItem("facing"); localStorage.removeItem("camId"); } catch (e) {}
     let lastId = "", lastTime = 0;
     let audioCtx = null;
 
@@ -195,8 +209,25 @@
       try { if (scanner) scanner.clear(); } catch (e) {}
       scanner = new Html5Qrcode("reader", {
         formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+        experimentalFeatures: { useBarCodeDetectorIfSupported: true },
         verbose: false
       });
+    }
+
+    // Camera picked from the list (remembered on this device)
+    let camId = "";
+    try { camId = localStorage.getItem("frontCamId") || ""; } catch (e) {}
+
+    const scanConfig = {
+      fps: 25,              // read up to 25 times per second (was 10)
+      disableFlip: true,    // skip mirrored decoding = faster
+      qrbox: (w, h) => { const s = Math.floor(Math.min(w, h) * 0.8); return { width: s, height: s }; }
+    };
+    const onScan = text => processEmployeeId(text, true);
+
+    async function tryStart(source) {
+      newScanner();
+      await scanner.start(source, scanConfig, onScan, () => {});
     }
 
     async function startCamera() {
@@ -204,30 +235,43 @@
       if (typeof Html5Qrcode === "undefined") {
         return setResult(ERR + "Scanner library not loaded. Reload the page.");
       }
-      setResult(SPIN + "Starting phone camera...");
+      setResult(SPIN + "Starting camera...");
       $("btnStart").disabled = true;
 
-      const config = {
-        fps: 10,
-        qrbox: (w, h) => { const s = Math.floor(Math.min(w, h) * 0.7); return { width: s, height: s }; }
-      };
-      const onScan = text => processEmployeeId(text, true);
-
       try {
-        newScanner();
-        try {
-          await scanner.start({ facingMode: "environment" }, config, onScan, () => {});
-        } catch (firstErr) {
-          // Fallback: pick the back camera from the device list
-          const cams = await Html5Qrcode.getCameras();
-          if (!cams || !cams.length) throw firstErr;
-          const back = cams.find(c => /back|rear|environment/i.test(c.label)) || cams[cams.length - 1];
-          newScanner();
-          await scanner.start(back.id, config, onScan, () => {});
+        let started = false, lastErr = null;
+
+        // 1. The camera chosen from the list last time
+        if (camId) {
+          try { await tryStart(camId); started = true; }
+          catch (e) { lastErr = e; camId = ""; }
         }
+        // 2. Front / back by facing mode (forced first, then normal)
+        if (!started) {
+          try { await tryStart({ facingMode: { exact: facing } }); started = true; }
+          catch (e) { lastErr = e; }
+        }
+        if (!started) {
+          try { await tryStart({ facingMode: facing }); started = true; }
+          catch (e) { lastErr = e; }
+        }
+        // 3. Pick from the device list by name
+        if (!started) {
+          const cams = await Html5Qrcode.getCameras();
+          if (!cams || !cams.length) throw lastErr || new Error("NotFoundError");
+          const want = facing === "user" ? /front|user|face|selfie/i : /back|rear|environment/i;
+          const pick = cams.find(c => want.test(c.label)) || (facing === "user" ? cams[0] : cams[cams.length - 1]);
+          await tryStart(pick.id);
+        }
+
+        if (facing === "user" && !camId) await ensureFront();
+
         cameraOn = true;
         $("btnStart").classList.add("d-none");
         $("btnStop").classList.remove("d-none");
+        $("btnSwitch").classList.remove("d-none");
+        await fillCameraList();
+        updateCameraUi();
         setResult(icon("fa-qrcode text-warning") + "Point the camera at the Employee QR code");
       } catch (err) {
         cameraOn = false;
@@ -237,11 +281,94 @@
       }
     }
 
+    // Some tablets open the back camera even when asked for the front one.
+    // Check what actually opened, and move to the front camera if needed.
+    async function ensureFront() {
+      let actual = "", currentId = "";
+      try {
+        const t = scanner.getRunningTrackSettings();
+        actual = t.facingMode || "";
+        currentId = t.deviceId || "";
+      } catch (e) {}
+      if (actual === "user") return;   // already front
+
+      let cams = [];
+      try {
+        cams = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === "videoinput");
+      } catch (e) { return; }
+      if (cams.length < 2) return;
+
+      const labeledFront = cams.find(d => /front|user|face|selfie/i.test(d.label));
+      let target = null;
+      if (labeledFront && labeledFront.deviceId !== currentId) target = labeledFront;
+      else if (actual === "environment") target = cams.find(d => d.deviceId !== currentId);
+      if (!target) return;
+
+      try { await scanner.stop(); } catch (e) {}
+      try { await tryStart(target.deviceId); }
+      catch (e) { await tryStart({ facingMode: "user" }); }
+    }
+
+    // Fill the "Choose camera" dropdown with every camera on the device
+    async function fillCameraList() {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const cams = devices.filter(d => d.kind === "videoinput");
+        const sel = $("camSelect");
+        sel.innerHTML = cams.map(function (c, i) {
+          return '<option value="' + esc(c.deviceId) + '">' + esc(c.label || ("Camera " + (i + 1))) + '</option>';
+        }).join("");
+        let current = "";
+        try { current = scanner.getRunningTrackSettings().deviceId || ""; } catch (e) {}
+        if (current) sel.value = current;
+        $("camPicker").classList.toggle("d-none", cams.length < 1);
+      } catch (e) {}
+    }
+
+    async function chooseCamera(id) {
+      if (!id) return;
+      camId = id;
+      try { localStorage.setItem("frontCamId", id); } catch (e) {}
+      await stopCamera();
+      startCamera();
+    }
+
     async function stopCamera() {
       if (scanner && cameraOn) { try { await scanner.stop(); } catch (e) {} }
       cameraOn = false;
       $("btnStop").classList.add("d-none");
+      $("btnSwitch").classList.add("d-none");
+      $("camPicker").classList.add("d-none");
+      $("camInfo").textContent = "";
       $("btnStart").classList.remove("d-none");
+    }
+
+    function updateCameraUi() {
+      let actual = "";
+      try { actual = scanner.getRunningTrackSettings().facingMode || ""; } catch (e) {}
+      const isFront = actual ? actual === "user" : facing === "user";
+      $("reader").classList.toggle("mirror", isFront);
+      $("switchLabel").textContent = isFront ? "Switch to Back Camera" : "Switch to Front Camera";
+      $("qrPhoto").setAttribute("capture", isFront ? "user" : "environment");
+
+      let label = "";
+      try {
+        const id = scanner.getRunningTrackSettings().deviceId;
+        const opt = Array.from($("camSelect").options).find(o => o.value === id);
+        label = opt ? opt.textContent : "";
+      } catch (e) {}
+      $("camInfo").textContent = "Camera: " + (label || "unknown") +
+        " | facing: " + (actual || "not reported");
+    }
+
+    async function switchCamera() {
+      let actual = "";
+      try { actual = scanner.getRunningTrackSettings().facingMode || ""; } catch (e) {}
+      const isFront = actual ? actual === "user" : facing === "user";
+      facing = isFront ? "environment" : "user";
+      camId = "";   // this session only; next time the page opens it starts with FRONT again
+      await stopCamera();
+      startCamera();
     }
 
     // Phones stop the camera when the screen locks or you switch apps; restart on return
@@ -266,6 +393,7 @@
         if (!fileScanner) {
           fileScanner = new Html5Qrcode("file-reader", {
             formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+            experimentalFeatures: { useBarCodeDetectorIfSupported: true },
             verbose: false
           });
         }
@@ -287,15 +415,9 @@
     }
 
     /* ---------- Send to Apps Script ---------- */
+    // Camera keeps running; we only ignore new scans until the server answers
     function finish() {
       busy = false;
-      if (cameraOn && scanner) {
-        setTimeout(function () {
-          try {
-            if (scanner.getState() === Html5QrcodeScannerState.PAUSED) scanner.resume();
-          } catch (e) {}
-        }, 2500);
-      }
     }
 
     async function processEmployeeId(empId, fromCamera) {
@@ -310,7 +432,6 @@
       busy = true;
       lastId = empId;
       lastTime = Date.now();
-      if (cameraOn && scanner) { try { scanner.pause(true); } catch (e) {} }
 
       setResult(SPIN + "Processing ID: " + esc(empId));
 
