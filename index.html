@@ -64,7 +64,7 @@
   <header class="top-header p-3 text-center">
     <h3 class="m-0"><i class="fa-solid fa-mobile-screen me-2"></i>PHONE QR SCANNER</h3>
     <small>Mega Prime Foods Inc. - Break Time Logger</small>
-    <div><small class="text-warning">v6</small></div>
+    <div><small class="text-warning">v7</small></div>
   </header>
 
   <div class="container py-3 my-auto">
@@ -114,7 +114,7 @@
 
   <script>
     // PASTE YOUR APPS SCRIPT /exec URL HERE
-    const API_URL = "https://script.google.com/macros/s/PASTE_YOUR_ID_HERE/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycby5_30Te50gyAWRbhWNZmH_uWlKtDSy_IT2R7y7SuRjec79Uh2p6ofoOtrzv7vDYDXPvw/exec";
 
     let scanner = null;       // live camera scanner
     let fileScanner = null;   // photo scanner
@@ -146,7 +146,12 @@
             .scanEmployee(id);
         });
       }
-      return fetch(API_URL + "?id=" + encodeURIComponent(id)).then(function (r) { return r.json(); });
+      return fetch(API_URL + "?id=" + encodeURIComponent(id))
+        .then(function (r) { return r.text(); })
+        .then(function (t) {
+          try { return JSON.parse(t); }
+          catch (e) { throw new Error("NOT_JSON"); }
+        });
     }
 
     /* ---------- Environment checks ---------- */
@@ -453,7 +458,15 @@
         }
       } catch (err) {
         lastId = ""; // allow an immediate retry
-        setResult(icon("fa-xmark text-danger") + "Network error. Check internet and try again.");
+        let msg;
+        if (!navigator.onLine) {
+          msg = "No internet connection. Check Wi-Fi and try again.";
+        } else if (err && err.message === "NOT_JSON") {
+          msg = "Apps Script answered with a page instead of data. Make sure the deployment is set to 'Who has access: Anyone' and deploy a New version.";
+        } else {
+          msg = "Cannot reach Apps Script. Check that the deployment access is 'Anyone' (not only megasardines.com), then try again.";
+        }
+        setResult(icon("fa-xmark text-danger") + esc(msg));
         feedback(false);
       }
       finish();
