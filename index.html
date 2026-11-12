@@ -1,476 +1,296 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Break Time Scanner</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+const CONFIG = {
+  EMP_SHEET: "Employees",
+  LOG_SHEET: "BreakLogs",
+  COOLDOWN_MS: 60 * 1000,   // ignore repeat scans of the same employee within 60 s
+  MAX_BREAK_MIN: 60,        // breaks longer than this are flagged OVERBREAK
+  ADMIN_PIN: "1234",        // supervisor PIN for "Forgot to Break In" (CHANGE THIS)
+  SCANNER_URL: "https://emadridano-web.github.io/break-scanner/"
+};
 
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&family=Rajdhani:wght@600;700&display=swap');
+const EMP_HEADERS = ["Employee ID", "Employee Name", "Department", "QR Code", "Status", "Last Scan"];
+const LOG_HEADERS = ["Date", "Employee ID", "Employee Name", "Action", "Timestamp", "Duration (Minutes)", "Remarks"];
 
-    body {
-      background: #000000 url('https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/2d77c594-f59b-483e-9b20-19b7f84ed21d/dmdpgmw-2e224476-bdd7-4b43-b80f-423ff25ca5f5.png/v1/fill/w_1280,h_715,q_80,strp/one_piece_luffy_4k_wallpaper_epic_anime_desktop_by_purewallfr_dmdpgmw-fullview.jpg?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNm4zNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7InBhdGgiOiIvZi8yZDc3YzU5NC1mNTliLTQ4M2UtOWIyMC0xOWI3Zjg0ZWQyMWQvZG1kcGdtdy0yZTIyNDQ3Ni1iZGQ3LTRiNDMtYjgwZi00MjNmZjI1Y2E1ZjUucG5nIiwiaGVpZ2h0IjoiPD03MTVsIiwid2lkdGgiOiI8PTEyODAifV1dLCJhdWQiOlsidXJuO3NlcnZpY2U6aW1hZ2Uud2F0ZXJtYXJrIl0sIndtayI6eyJwYXRoIjoiL3dtLzJkNzdjNTk0LWY1OWItNDgzZS05YjIwLTE5YjdmODRlZDIxZC9wdXJld2FsbGZyLTQucG5nIiwib3BhY2l0eSI6OTUsInByb3BvcnRpb25zIjowLjQ1LCJncmF2aXR5IjoiY2VudGVyIn19.AbZuC-PHMJCdQ0qerf0Roa4IS_6Vv5xNj40AVInj8nc') no-repeat center center fixed;
-      background-size: cover;
-      font-family: 'Rajdhani', sans-serif;
-      margin: 0; padding: 0;
-      min-height: 100vh;
-      display: flex; flex-direction: column;
-      color: #ffffff;
-    }
-    body::before {
-      content: ""; position: fixed; inset: 0;
-      background: rgba(0, 0, 0, 0.45); z-index: -1;
-    }
-    .top-header {
-      background: rgba(10, 5, 5, 0.85); backdrop-filter: blur(10px);
-      border-bottom: 2px solid #ff2a00; box-shadow: 0 4px 20px rgba(255, 42, 0, 0.35);
-    }
-    h3 {
-      font-family: 'Orbitron', sans-serif; letter-spacing: 1px; font-weight: 800;
-      text-shadow: 0 0 10px rgba(255, 42, 0, 0.8), 0 2px 4px rgba(0, 0, 0, 0.9);
-    }
-    .bg-card {
-      background: rgba(8, 4, 4, 0.75) !important; backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 42, 0, 0.4) !important; border-radius: 12px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8);
-    }
-    #reader {
-      width: 100%; max-width: 380px; margin: 0 auto;
-      border: 2px solid rgba(255, 42, 0, 0.6); border-radius: 10px;
-      overflow: hidden; background: #000; min-height: 250px;
-    }
-    #reader video { width: 100% !important; height: auto !important; }
-    #reader.mirror video { transform: scaleX(-1); }
-    #camSelect { background-color: rgba(10, 5, 5, 0.85); color: #fff; border: 1px solid rgba(255, 193, 7, 0.7); }
-    #file-reader { position: absolute; left: -9999px; width: 300px; height: 300px; }
-    .result-box {
-      font-family: 'Orbitron', sans-serif; font-size: 1.15rem;
-      background: rgba(15, 5, 5, 0.85); border: 1px solid rgba(255, 42, 0, 0.5);
-      border-radius: 8px; padding: 15px; margin-top: 15px;
-      text-shadow: 0 0 8px rgba(255, 42, 0, 0.7);
-    }
-    .form-control {
-      background-color: rgba(10, 5, 5, 0.85) !important;
-      border: 1px solid rgba(255, 42, 0, 0.5); color: #fff !important;
-    }
-    .form-control::placeholder { color: rgba(255, 255, 255, 0.6); }
-    .btn-mobile { padding: 12px; font-size: 1.1rem; font-family: 'Orbitron', sans-serif; font-weight: 700; }
-  </style>
-</head>
-<body>
-  <header class="top-header p-3 text-center">
-    <h3 class="m-0"><i class="fa-solid fa-mobile-screen me-2"></i>PHONE QR SCANNER</h3>
-    <small>Mega Prime Foods Inc. - Break Time Logger</small>
-    <div><small class="text-warning">v7</small></div>
-  </header>
+/* ---------- Spreadsheet menu ---------- */
+function onOpen() {
+  SpreadsheetApp.getUi()
+    .createMenu("Break Logger")
+    .addItem("Set up / repair sheets", "setup")
+    .addItem("Generate QR codes", "generateQRCodes")
+    .addSeparator()
+    .addItem("Clear break logs (with backup)", "clearLogs")
+    .addToUi();
+}
 
-  <div class="container py-3 my-auto">
-    <div class="row justify-content-center">
-      <div class="col-md-6 col-lg-5">
-        <div class="p-3 p-md-4 bg-card text-center">
+/* ---------- Helpers ---------- */
+function getSheet_(name, headers) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sh = ss.getSheetByName(name) || ss.insertSheet(name);
+  if (sh.getLastRow() === 0) {
+    sh.getRange(1, 1, 1, headers.length).setValues([headers]).setFontWeight("bold");
+    sh.setFrozenRows(1);
+  }
+  return sh;
+}
 
-          <div id="warn" class="alert alert-warning small text-start d-none"></div>
+function normalizeId_(v) {
+  return String(v == null ? "" : v).replace(/\s+/g, "");
+}
 
-          <div id="reader" class="mb-3"></div>
-          <div id="file-reader"></div>
-          <div id="camInfo" class="small text-warning mb-2"></div>
+/* ---------- Setup (safe to run again, does NOT delete data) ---------- */
+function setup() {
+  const emp = getSheet_(CONFIG.EMP_SHEET, EMP_HEADERS);
+  const log = getSheet_(CONFIG.LOG_SHEET, LOG_HEADERS);
 
-          <button id="btnStart" class="btn btn-danger w-100 btn-mobile mb-2" onclick="startCamera()">
-            <i class="fa-solid fa-camera me-2"></i>TAP TO OPEN PHONE CAMERA
-          </button>
-          <button id="btnSwitch" class="btn btn-warning w-100 mb-2 d-none" onclick="switchCamera()">
-            <i class="fa-solid fa-camera-rotate me-2"></i><span id="switchLabel">Switch Camera</span>
-          </button>
-          <div id="camPicker" class="text-start mb-2 d-none">
-            <label class="form-label small text-warning mb-1"><i class="fa-solid fa-video me-1"></i>Choose camera</label>
-            <select id="camSelect" class="form-select" onchange="chooseCamera(this.value)"></select>
-          </div>
-          <button id="btnStop" class="btn btn-outline-light w-100 mb-2 d-none" onclick="stopCamera()">
-            <i class="fa-solid fa-stop me-2"></i>Stop Camera
-          </button>
+  emp.getRange(1, 1, 1, EMP_HEADERS.length).setValues([EMP_HEADERS]).setFontWeight("bold");
+  log.getRange(1, 1, 1, LOG_HEADERS.length).setValues([LOG_HEADERS]).setFontWeight("bold");
+  emp.setFrozenRows(1);
+  log.setFrozenRows(1);
 
-          <label class="btn btn-outline-warning w-100 mb-3">
-            <i class="fa-solid fa-image me-2"></i>Camera not working? Take a photo of the QR
-            <input type="file" id="qrPhoto" accept="image/*" capture="user" hidden onchange="scanPhoto(this)">
-          </label>
+  emp.getRange("A:A").setNumberFormat("@");
+  log.getRange("B:B").setNumberFormat("@");
+  emp.getRange("F2:F").setNumberFormat("yyyy-mm-dd hh:mm:ss am/pm");
+  log.getRange("E2:E").setNumberFormat("yyyy-mm-dd hh:mm:ss am/pm");
 
-          <div class="mt-2 text-start border-top border-secondary pt-3">
-            <label class="form-label small text-light"><i class="fa-solid fa-keyboard me-1 text-warning"></i>Manual Employee ID Backup</label>
-            <div class="input-group">
-              <input type="text" id="manualEmpId" class="form-control" placeholder="Enter ID (e.g. 001)"
-                     inputmode="numeric" onkeydown="if(event.key==='Enter') submitManualId()">
-              <button class="btn btn-outline-danger" onclick="submitManualId()"><i class="fa-solid fa-arrow-right"></i> Log</button>
-            </div>
-          </div>
+  if (emp.getLastRow() < 2) {
+    emp.getRange(2, 1, 3, 3).setValues([
+      ["001", "Juan Dela Cruz", "Packing"],
+      ["002", "Pedro Santos", "Filling"],
+      ["003", "Mario Reyes", "Packing"]
+    ]);
+  }
 
-          <div id="result" class="result-box"><i class="fa-solid fa-hand-pointer me-2 text-warning"></i>Tap the red button above to start your phone camera.</div>
-        </div>
-      </div>
-    </div>
-  </div>
+  generateQRCodes();
+}
 
-  <script>
-    // PASTE YOUR APPS SCRIPT /exec URL HERE
-    const API_URL = "https://script.google.com/macros/s/AKfycby5_30Te50gyAWRbhWNZmH_uWlKtDSy_IT2R7y7SuRjec79Uh2p6ofoOtrzv7vDYDXPvw/exec";
+function generateQRCodes() {
+  const emp = getSheet_(CONFIG.EMP_SHEET, EMP_HEADERS);
+  const n = emp.getLastRow() - 1;
+  if (n < 1) return;
 
-    let scanner = null;       // live camera scanner
-    let fileScanner = null;   // photo scanner
-    let busy = false, cameraOn = false, restartOnReturn = false;
-    // "user" = FRONT camera, "environment" = BACK camera
-    let facing = "user";   // always open the FRONT camera first
-    try { localStorage.removeItem("facing"); localStorage.removeItem("camId"); } catch (e) {}
-    let lastId = "", lastTime = 0;
-    let audioCtx = null;
+  const url = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=";
+  const formula = '=IF(RC1="","",IMAGE("' + url + '"&ENCODEURL(RC1)))';
 
-    const $ = id => document.getElementById(id);
-    const esc = s => String(s).replace(/[&<>"']/g, c =>
-      ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-    const icon = cls => '<i class="fa-solid ' + cls + ' me-2"></i>';
-    const setResult = html => { $("result").innerHTML = html; };
-    const SPIN = icon("fa-spinner fa-spin text-warning");
-    const ERR = icon("fa-triangle-exclamation text-danger");
+  emp.getRange(2, 4, n, 1).setFormulaR1C1(formula);
+  emp.setColumnWidth(4, 160);
+  emp.setRowHeights(2, n, 120);
+}
 
-    // Works in both places: inside Apps Script (/exec) and on GitHub Pages
-    function inAppsScript() {
-      return typeof google !== "undefined" && google.script && google.script.run;
-    }
-    function callServer(id) {
-      if (inAppsScript()) {
-        return new Promise(function (resolve, reject) {
-          google.script.run
-            .withSuccessHandler(resolve)
-            .withFailureHandler(reject)
-            .scanEmployee(id);
-        });
-      }
-      return fetch(API_URL + "?id=" + encodeURIComponent(id))
-        .then(function (r) { return r.text(); })
-        .then(function (t) {
-          try { return JSON.parse(t); }
-          catch (e) { throw new Error("NOT_JSON"); }
-        });
+/* ---------- Clear logs ----------
+   Saves a backup copy of BreakLogs, deletes all log rows (keeps header),
+   and resets every employee's Status / Last Scan.
+*/
+function clearLogs() {
+  const ui = SpreadsheetApp.getUi();
+  const answer = ui.alert(
+    "Clear break logs?",
+    "A backup copy of BreakLogs will be saved first, then all log rows will be deleted " +
+    "and every employee's Status will be reset. Continue?",
+    ui.ButtonSet.YES_NO
+  );
+  if (answer !== ui.Button.YES) return;
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const log = getSheet_(CONFIG.LOG_SHEET, LOG_HEADERS);
+    const emp = getSheet_(CONFIG.EMP_SHEET, EMP_HEADERS);
+
+    // 1. Backup
+    if (log.getLastRow() > 1) {
+      const stamp = Utilities.formatDate(new Date(), ss.getSpreadsheetTimeZone(), "yyyy-MM-dd HHmm");
+      log.copyTo(ss).setName("Backup " + stamp);
     }
 
-    /* ---------- Environment checks ---------- */
-    window.addEventListener("load", function () {
-      const ua = navigator.userAgent || "";
-      const warn = [];
-      if (!inAppsScript() && API_URL.indexOf("PASTE_YOUR_ID_HERE") !== -1) {
-        warn.push("Setup needed: put your Apps Script <b>/exec</b> URL in <b>API_URL</b> inside index.html.");
-      }
-      if (typeof Html5Qrcode === "undefined") {
-        warn.push("Scanner library failed to load. Check your internet connection and reload.");
-      }
-      if (/FBAN|FBAV|FB_IAB|Messenger|Instagram|Line\/|TikTok/i.test(ua)) {
-        warn.push("You opened this inside Messenger/Facebook, which blocks the camera. " +
-                  "Tap the <b>&#8942;</b> or <b>&hellip;</b> menu and choose <b>Open in Chrome</b> (Android) or <b>Open in Safari</b> (iPhone).");
-      }
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        warn.push("This browser can't open a live camera. Use the <b>Take a photo of the QR</b> button instead.");
-      }
-      if (warn.length) {
-        $("warn").innerHTML = warn.join("<br><br>");
-        $("warn").classList.remove("d-none");
-      }
-    });
-
-    function cameraErrorMessage(err) {
-      const text = String((err && (err.name + ": " + err.message)) || err);
-      if (/NotAllowed|Permission|denied/i.test(text))
-        return "Camera permission is blocked. Tap the lock icon in the address bar > Permissions > Camera > Allow, then reload the page.";
-      if (/NotFound|no camera|Requested device not found/i.test(text))
-        return "No camera found on this device.";
-      if (/NotReadable|in use|Could not start/i.test(text))
-        return "Camera is being used by another app. Close other camera apps and try again.";
-      if (/secure|https/i.test(text))
-        return "Camera needs a secure (https) page.";
-      return "Could not start camera (" + text + "). Use the photo button below instead.";
+    // 2. Delete all log rows, keep header
+    if (log.getLastRow() > 1) {
+      log.getRange(2, 1, log.getLastRow() - 1, log.getLastColumn()).clearContent();
     }
 
-    /* ---------- Sound / vibration ---------- */
-    function unlockAudio() {
-      try {
-        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        if (audioCtx.state === "suspended") audioCtx.resume();
-      } catch (e) {}
-    }
-    function feedback(ok) {
-      try { if (navigator.vibrate) navigator.vibrate(ok ? 120 : [80, 60, 80]); } catch (e) {}
-      try {
-        if (!audioCtx) return;
-        const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-        o.frequency.value = ok ? 880 : 220;
-        g.gain.value = 0.15;
-        o.connect(g); g.connect(audioCtx.destination);
-        o.start(); o.stop(audioCtx.currentTime + 0.15);
-      } catch (e) {}
+    // 3. Reset Status / Last Scan
+    if (emp.getLastRow() > 1) {
+      emp.getRange(2, 5, emp.getLastRow() - 1, 2).clearContent();
     }
 
-    /* ---------- Live camera ---------- */
-    function newScanner() {
-      try { if (scanner) scanner.clear(); } catch (e) {}
-      scanner = new Html5Qrcode("reader", {
-        formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
-        experimentalFeatures: { useBarCodeDetectorIfSupported: true },
-        verbose: false
-      });
+    SpreadsheetApp.flush();
+  } finally {
+    lock.releaseLock();
+  }
+  ui.alert("Done. Logs cleared and a backup sheet was created.");
+}
+
+/* ---------- Web app ----------
+   .../exec?id=001                          -> normal scan (JSON)
+   .../exec?fix=in&id=001&time=13:30&pin=.. -> forgot to break in (JSON)
+   .../exec                                 -> button that opens the GitHub scanner
+*/
+function doGet(e) {
+  const p = (e && e.parameter) || {};
+  let result = null;
+
+  if (p.fix === "in") {
+    result = fixBreakIn(p.id, p.time, p.pin);
+  } else if (p.id) {
+    result = scanEmployee(p.id);
+  }
+
+  if (result) {
+    return ContentService
+      .createTextOutput(JSON.stringify(result))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  return HtmlService.createHtmlOutput(
+    '<base target="_top">' +
+    '<div style="font-family:sans-serif;text-align:center;padding:60px 20px;">' +
+    '<h2>Break Time Scanner</h2>' +
+    '<p>Tap the button to open the scanner with camera.</p>' +
+    '<a href="' + CONFIG.SCANNER_URL + '" target="_top" ' +
+    'style="display:inline-block;background:#dc3545;color:#fff;padding:16px 28px;' +
+    'border-radius:8px;font-size:20px;text-decoration:none;font-weight:bold;">OPEN SCANNER</a>' +
+    '</div>'
+  ).setTitle("Break Time Scanner")
+   .addMetaTag("viewport", "width=device-width, initial-scale=1");
+}
+
+/* ---------- Forgot to Break In ----------
+   Records the ACTUAL break-in time for an employee who is still ON BREAK.
+   Needs the supervisor PIN.
+*/
+function fixBreakIn(rawId, timeStr, pin) {
+  if (String(pin || "") !== String(CONFIG.ADMIN_PIN)) {
+    return { success: false, message: "Wrong supervisor PIN." };
+  }
+  const id = normalizeId_(rawId);
+  const m = String(timeStr || "").trim().match(/^(\d{1,2}):(\d{2})/);
+  if (!id || !m) {
+    return { success: false, message: "Enter the Employee ID and the actual break-in time." };
+  }
+
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(10000)) {
+    return { success: false, message: "System busy. Please try again." };
+  }
+
+  try {
+    const emp = getSheet_(CONFIG.EMP_SHEET, EMP_HEADERS);
+    const log = getSheet_(CONFIG.LOG_SHEET, LOG_HEADERS);
+
+    const lastRow = emp.getLastRow();
+    if (lastRow < 2) return { success: false, message: "No employee records found." };
+
+    const data = emp.getRange(2, 1, lastRow - 1, 6).getValues();
+    const idx = data.findIndex(function (r) { return normalizeId_(r[0]) === id; });
+    if (idx === -1) return { success: false, message: "Employee ID '" + id + "' not found." };
+
+    const name = String(data[idx][1]).trim();
+    const status = String(data[idx][4]).trim();
+    const breakOut = data[idx][5] instanceof Date ? data[idx][5] : null;
+
+    if (status !== "ON BREAK" || !breakOut) {
+      return { success: false, message: name + " is not on break. Nothing to fix." };
     }
 
-    // Camera picked from the list (remembered on this device)
-    let camId = "";
-    try { camId = localStorage.getItem("frontCamId") || ""; } catch (e) {}
+    const tz = SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone();
+    const breakDate = Utilities.formatDate(breakOut, tz, "yyyy-MM-dd");
+    const hh = ("0" + m[1]).slice(-2);
+    const actual = Utilities.parseDate(breakDate + " " + hh + ":" + m[2], tz, "yyyy-MM-dd HH:mm");
+    const now = new Date();
+    const outTime = Utilities.formatDate(breakOut, tz, "hh:mm a");
 
-    const scanConfig = {
-      fps: 25,              // read up to 25 times per second (was 10)
-      disableFlip: true,    // skip mirrored decoding = faster
-      qrbox: (w, h) => { const s = Math.floor(Math.min(w, h) * 0.8); return { width: s, height: s }; }
+    if (actual <= breakOut) {
+      return { success: false, message: "Break-in time must be after the BREAK OUT time (" + outTime + ")." };
+    }
+    if (actual > now) {
+      return { success: false, message: "Break-in time cannot be in the future." };
+    }
+
+    const duration = Math.round((actual - breakOut) / 60000);
+    let remarks = "FORGOT TO BREAK IN (time entered manually)";
+    if (duration > CONFIG.MAX_BREAK_MIN) {
+      remarks += " | OVERBREAK (+" + (duration - CONFIG.MAX_BREAK_MIN) + " min)";
+    }
+
+    log.appendRow([breakDate, id, name, "BREAK IN", actual, duration, remarks]);
+    emp.getRange(idx + 2, 5, 1, 2).setValues([["WORKING", now]]);
+    SpreadsheetApp.flush();
+
+    return {
+      success: true,
+      name: name,
+      action: "BREAK IN",
+      time: Utilities.formatDate(actual, tz, "hh:mm a"),
+      duration: duration,
+      remarks: remarks
     };
-    const onScan = text => processEmployeeId(text, true);
+  } catch (err) {
+    return { success: false, message: "Server error: " + err.message };
+  } finally {
+    lock.releaseLock();
+  }
+}
 
-    async function tryStart(source) {
-      newScanner();
-      await scanner.start(source, scanConfig, onScan, () => {});
+/* ---------- Main scan handler ---------- */
+function scanEmployee(rawId) {
+  const id = normalizeId_(rawId);
+  if (!id) return { success: false, message: "Empty QR code / Employee ID." };
+
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(10000)) {
+    return { success: false, message: "System busy. Please scan again." };
+  }
+
+  try {
+    const emp = getSheet_(CONFIG.EMP_SHEET, EMP_HEADERS);
+    const log = getSheet_(CONFIG.LOG_SHEET, LOG_HEADERS);
+
+    const lastRow = emp.getLastRow();
+    if (lastRow < 2) return { success: false, message: "No employee records found." };
+
+    const data = emp.getRange(2, 1, lastRow - 1, 6).getValues();
+    const idx = data.findIndex(function (r) { return normalizeId_(r[0]) === id; });
+    if (idx === -1) return { success: false, message: "Employee ID '" + id + "' not found." };
+
+    const row = data[idx];
+    const name = String(row[1]).trim();
+    const status = String(row[4]).trim();
+    const lastScan = row[5] instanceof Date ? row[5] : null;
+
+    const now = new Date();
+    const tz = SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone();
+    const today = Utilities.formatDate(now, tz, "yyyy-MM-dd");
+    const time = Utilities.formatDate(now, tz, "hh:mm:ss a");
+
+    if (lastScan && now - lastScan < CONFIG.COOLDOWN_MS) {
+      return { success: false, message: name + " just scanned. Please wait a minute." };
     }
 
-    async function startCamera() {
-      unlockAudio();
-      if (typeof Html5Qrcode === "undefined") {
-        return setResult(ERR + "Scanner library not loaded. Reload the page.");
+    const onBreakToday = status === "ON BREAK" && lastScan &&
+      Utilities.formatDate(lastScan, tz, "yyyy-MM-dd") === today;
+
+    let action;
+    let duration = null;
+    let remarks = "";
+
+    if (onBreakToday) {
+      action = "BREAK IN";
+      duration = Math.round((now - lastScan) / 60000);
+      if (duration > CONFIG.MAX_BREAK_MIN) {
+        remarks = "OVERBREAK (+" + (duration - CONFIG.MAX_BREAK_MIN) + " min)";
       }
-      setResult(SPIN + "Starting camera...");
-      $("btnStart").disabled = true;
-
-      try {
-        let started = false, lastErr = null;
-
-        // 1. The camera chosen from the list last time
-        if (camId) {
-          try { await tryStart(camId); started = true; }
-          catch (e) { lastErr = e; camId = ""; }
-        }
-        // 2. Front / back by facing mode (forced first, then normal)
-        if (!started) {
-          try { await tryStart({ facingMode: { exact: facing } }); started = true; }
-          catch (e) { lastErr = e; }
-        }
-        if (!started) {
-          try { await tryStart({ facingMode: facing }); started = true; }
-          catch (e) { lastErr = e; }
-        }
-        // 3. Pick from the device list by name
-        if (!started) {
-          const cams = await Html5Qrcode.getCameras();
-          if (!cams || !cams.length) throw lastErr || new Error("NotFoundError");
-          const want = facing === "user" ? /front|user|face|selfie/i : /back|rear|environment/i;
-          const pick = cams.find(c => want.test(c.label)) || (facing === "user" ? cams[0] : cams[cams.length - 1]);
-          await tryStart(pick.id);
-        }
-
-        if (facing === "user" && !camId) await ensureFront();
-
-        cameraOn = true;
-        $("btnStart").classList.add("d-none");
-        $("btnStop").classList.remove("d-none");
-        $("btnSwitch").classList.remove("d-none");
-        await fillCameraList();
-        updateCameraUi();
-        setResult(icon("fa-qrcode text-warning") + "Point the camera at the Employee QR code");
-      } catch (err) {
-        cameraOn = false;
-        setResult(ERR + esc(cameraErrorMessage(err)));
-      } finally {
-        $("btnStart").disabled = false;
-      }
+    } else {
+      action = "BREAK OUT";
+      if (status === "ON BREAK") remarks = "Previous break was not closed (no BREAK IN)";
     }
 
-    // Some tablets open the back camera even when asked for the front one.
-    // Check what actually opened, and move to the front camera if needed.
-    async function ensureFront() {
-      let actual = "", currentId = "";
-      try {
-        const t = scanner.getRunningTrackSettings();
-        actual = t.facingMode || "";
-        currentId = t.deviceId || "";
-      } catch (e) {}
-      if (actual === "user") return;   // already front
+    log.appendRow([today, id, name, action, now, duration === null ? "" : duration, remarks]);
+    emp.getRange(idx + 2, 5, 1, 2).setValues([[action === "BREAK OUT" ? "ON BREAK" : "WORKING", now]]);
+    SpreadsheetApp.flush();
 
-      let cams = [];
-      try {
-        cams = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === "videoinput");
-      } catch (e) { return; }
-      if (cams.length < 2) return;
-
-      const labeledFront = cams.find(d => /front|user|face|selfie/i.test(d.label));
-      let target = null;
-      if (labeledFront && labeledFront.deviceId !== currentId) target = labeledFront;
-      else if (actual === "environment") target = cams.find(d => d.deviceId !== currentId);
-      if (!target) return;
-
-      try { await scanner.stop(); } catch (e) {}
-      try { await tryStart(target.deviceId); }
-      catch (e) { await tryStart({ facingMode: "user" }); }
-    }
-
-    // Fill the "Choose camera" dropdown with every camera on the device
-    async function fillCameraList() {
-      try {
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        const cams = devices.filter(d => d.kind === "videoinput");
-        const sel = $("camSelect");
-        sel.innerHTML = cams.map(function (c, i) {
-          return '<option value="' + esc(c.deviceId) + '">' + esc(c.label || ("Camera " + (i + 1))) + '</option>';
-        }).join("");
-        let current = "";
-        try { current = scanner.getRunningTrackSettings().deviceId || ""; } catch (e) {}
-        if (current) sel.value = current;
-        $("camPicker").classList.toggle("d-none", cams.length < 1);
-      } catch (e) {}
-    }
-
-    async function chooseCamera(id) {
-      if (!id) return;
-      camId = id;
-      try { localStorage.setItem("frontCamId", id); } catch (e) {}
-      await stopCamera();
-      startCamera();
-    }
-
-    async function stopCamera() {
-      if (scanner && cameraOn) { try { await scanner.stop(); } catch (e) {} }
-      cameraOn = false;
-      $("btnStop").classList.add("d-none");
-      $("btnSwitch").classList.add("d-none");
-      $("camPicker").classList.add("d-none");
-      $("camInfo").textContent = "";
-      $("btnStart").classList.remove("d-none");
-    }
-
-    function updateCameraUi() {
-      let actual = "";
-      try { actual = scanner.getRunningTrackSettings().facingMode || ""; } catch (e) {}
-      const isFront = actual ? actual === "user" : facing === "user";
-      $("reader").classList.toggle("mirror", isFront);
-      $("switchLabel").textContent = isFront ? "Switch to Back Camera" : "Switch to Front Camera";
-      $("qrPhoto").setAttribute("capture", isFront ? "user" : "environment");
-
-      let label = "";
-      try {
-        const id = scanner.getRunningTrackSettings().deviceId;
-        const opt = Array.from($("camSelect").options).find(o => o.value === id);
-        label = opt ? opt.textContent : "";
-      } catch (e) {}
-      $("camInfo").textContent = "Camera: " + (label || "unknown") +
-        " | facing: " + (actual || "not reported");
-    }
-
-    async function switchCamera() {
-      let actual = "";
-      try { actual = scanner.getRunningTrackSettings().facingMode || ""; } catch (e) {}
-      const isFront = actual ? actual === "user" : facing === "user";
-      facing = isFront ? "environment" : "user";
-      camId = "";   // this session only; next time the page opens it starts with FRONT again
-      await stopCamera();
-      startCamera();
-    }
-
-    // Phones stop the camera when the screen locks or you switch apps; restart on return
-    document.addEventListener("visibilitychange", async function () {
-      if (document.hidden && cameraOn) {
-        restartOnReturn = true;
-        await stopCamera();
-      } else if (!document.hidden && restartOnReturn) {
-        restartOnReturn = false;
-        startCamera();
-      }
-    });
-
-    /* ---------- Photo fallback ---------- */
-    async function scanPhoto(input) {
-      unlockAudio();
-      const file = input.files && input.files[0];
-      input.value = "";
-      if (!file) return;
-      setResult(SPIN + "Reading QR code from photo...");
-      try {
-        if (!fileScanner) {
-          fileScanner = new Html5Qrcode("file-reader", {
-            formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
-            experimentalFeatures: { useBarCodeDetectorIfSupported: true },
-            verbose: false
-          });
-        }
-        const text = await fileScanner.scanFile(file, false);
-        processEmployeeId(text, false);
-      } catch (e) {
-        feedback(false);
-        setResult(ERR + "No QR code found in the photo. Hold steady, fill the frame with the QR code, and try again.");
-      }
-    }
-
-    /* ---------- Manual entry ---------- */
-    function submitManualId() {
-      unlockAudio();
-      const val = $("manualEmpId").value.trim();
-      if (!val) return setResult(ERR + "Please enter an Employee ID.");
-      processEmployeeId(val, false);
-      $("manualEmpId").value = "";
-    }
-
-    /* ---------- Send to Apps Script ---------- */
-    // Camera keeps running; we only ignore new scans until the server answers
-    function finish() {
-      busy = false;
-    }
-
-    async function processEmployeeId(empId, fromCamera) {
-      empId = String(empId).trim();
-      if (!empId || busy) return;
-
-      if (empId === lastId && Date.now() - lastTime < 60000) {
-        if (!fromCamera) setResult(icon("fa-clock text-warning") + "Already scanned. Please wait a minute.");
-        return;
-      }
-
-      busy = true;
-      lastId = empId;
-      lastTime = Date.now();
-
-      setResult(SPIN + "Processing ID: " + esc(empId));
-
-      try {
-        const res = await callServer(empId);
-
-        if (res && res.success) {
-          const out = res.action === "BREAK OUT";
-          let html = icon(out ? "fa-person-walking-arrow-right text-warning"
-                              : "fa-person-walking-arrow-loop text-success") +
-                     esc(res.name) + "<br><strong>" + esc(res.action) + "</strong> - " + esc(res.time);
-          if (!out) html += '<br><span class="text-info">Duration: ' + esc(res.duration) + " mins</span>";
-          if (res.remarks) html += '<br><span class="text-danger">' + esc(res.remarks) + "</span>";
-          setResult(html);
-          feedback(true);
-        } else {
-          setResult(ERR + esc(res ? res.message : "Unknown error"));
-          feedback(false);
-        }
-      } catch (err) {
-        lastId = ""; // allow an immediate retry
-        let msg;
-        if (!navigator.onLine) {
-          msg = "No internet connection. Check Wi-Fi and try again.";
-        } else if (err && err.message === "NOT_JSON") {
-          msg = "Apps Script answered with a page instead of data. Make sure the deployment is set to 'Who has access: Anyone' and deploy a New version.";
-        } else {
-          msg = "Cannot reach Apps Script. Check that the deployment access is 'Anyone' (not only megasardines.com), then try again.";
-        }
-        setResult(icon("fa-xmark text-danger") + esc(msg));
-        feedback(false);
-      }
-      finish();
-    }
-  </script>
-</body>
-</html>
+    return { success: true, name: name, action: action, time: time, duration: duration, remarks: remarks };
+  } catch (err) {
+    return { success: false, message: "Server error: " + err.message };
+  } finally {
+    lock.releaseLock();
+  }
+}
