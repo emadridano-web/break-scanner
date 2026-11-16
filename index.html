@@ -12,7 +12,7 @@
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&family=Rajdhani:wght@600;700&display=swap');
 
     body {
-      background: #f1f5f9 url(https://images.unsplash.com/photo-1505832018823-50331d70d237?q=80&w=1208&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D) no-repeat center center fixed;
+      background: #0f172a url('bg.jpg') no-repeat center center fixed;
       background-size: cover;
       font-family: 'Rajdhani', sans-serif;
       margin: 0; padding: 0;
@@ -22,11 +22,11 @@
     }
     body::before {
       content: ""; position: fixed; inset: 0;
-      background: rgba(255, 255, 255, 0.72); z-index: -1;
+      background: rgba(255, 255, 255, 0.35); z-index: -1;
     }
     .top-header {
       background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(10px);
-      border-bottom: 3px solid #dc2626; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+      border-bottom: 3px solid #dc2626; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
       color: #0f172a;
     }
     h3 {
@@ -34,9 +34,9 @@
       color: #b91c1c;
     }
     .bg-card {
-      background: rgba(255, 255, 255, 0.90) !important; backdrop-filter: blur(12px);
-      border: 1px solid rgba(220, 38, 38, 0.25) !important; border-radius: 14px;
-      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+      background: rgba(255, 255, 255, 0.88) !important; backdrop-filter: blur(12px);
+      border: 1px solid rgba(220, 38, 38, 0.3) !important; border-radius: 14px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
       color: #1e293b;
     }
     #reader {
@@ -75,7 +75,7 @@
   <header class="top-header p-3 text-center">
     <h3 class="m-0"><i class="fa-solid fa-mobile-screen me-2"></i>PHONE QR SCANNER</h3>
     <small class="text-secondary fw-bold">Mega Prime Foods Inc. - Break Time Logger</small>
-    <div><small class="badge bg-danger">v10 Light Theme + Voice</small></div>
+    <div><small class="badge bg-danger">v11 Mega Prime BG + Voice</small></div>
   </header>
 
   <div class="container py-3 my-auto">
@@ -161,7 +161,6 @@
     const SPIN = icon("fa-spinner fa-spin text-warning");
     const ERR = icon("fa-triangle-exclamation text-danger");
 
-    // Works in both places: inside Apps Script (/exec) and on GitHub Pages
     function inAppsScript() {
       return typeof google !== "undefined" && google.script && google.script.run;
     }
@@ -223,7 +222,6 @@
       try {
         if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         if (audioCtx.state === "suspended") audioCtx.resume();
-        // Unlock mobile voice synthesis on first user tap
         if ('speechSynthesis' in window) {
           const silent = new SpeechSynthesisUtterance("");
           silent.volume = 0;
