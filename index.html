@@ -76,7 +76,7 @@
   <header class="top-header p-3 text-center">
     <h3 class="m-0"><i class="fa-solid fa-mobile-screen me-2"></i>PHONE QR SCANNER</h3>
     <small class="text-secondary fw-bold">Mega Prime Foods Inc. - Break Time Logger</small>
-    <div><small class="badge bg-danger">v16 Auto Break + Voice</small></div>
+    <div><small class="badge bg-danger">v17 Auto Break + Thank You Voice</small></div>
   </header>
 
   <div class="container py-3 my-auto">
@@ -142,7 +142,7 @@
   </div>
 
   <script>
-    // PALITAN ITO NG BAGONG APPS SCRIPT /exec URL MO KAPAG NAG-NEW DEPLOYMENT KA
+    // PALITAN ITO NG APPS SCRIPT /exec URL MO KUNG NAG-NEW DEPLOYMENT KA
     const API_URL = "https://script.google.com/macros/s/AKfycby5_30Te50gyAWRbhWNZmH_uWlKtDSy_IT2R7y7SuRjec79Uh2p6ofoOtrzv7vDYDXPvw/exec";
 
     let scanner = null;
@@ -480,7 +480,7 @@
         setResult(html);
         feedback(true);
         setTimeout(function () {
-          speakLoud("Thank you, " + res.name);
+          speakLoud("Thank you");
         }, 180);
       } else {
         setResult(ERR + esc(res ? res.message : "Unknown error"));
