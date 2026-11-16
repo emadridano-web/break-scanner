@@ -12,21 +12,31 @@
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&family=Rajdhani:wght@600;700&display=swap');
 
     body {
-      background: #0f172a url('bg.jpg') no-repeat center center fixed;
-      background-size: cover;
+      /* Pinagkakasya ang buong lapad ng image sa portrait screen para kita lahat ng products */
+      background: #e2e8f0 url('bg.jpg') no-repeat top center fixed;
+      background-size: 100% auto;
       font-family: 'Rajdhani', sans-serif;
       margin: 0; padding: 0;
       min-height: 100vh;
       display: flex; flex-direction: column;
       color: #1e293b;
     }
+
+    /* Kapag naka-landscape naman ang tablet o desktop, pupunuin pa rin nito ang buong screen */
+    @media (orientation: landscape) {
+      body {
+        background-size: cover;
+        background-position: center center;
+      }
+    }
+
     body::before {
       content: ""; position: fixed; inset: 0;
-      background: rgba(255, 255, 255, 0.35); z-index: -1;
+      background: rgba(255, 255, 255, 0.25); z-index: -1;
     }
     .top-header {
       background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(10px);
-      border-bottom: 3px solid #dc2626; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+      border-bottom: 3px solid #dc2626; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12);
       color: #0f172a;
     }
     h3 {
@@ -34,9 +44,9 @@
       color: #b91c1c;
     }
     .bg-card {
-      background: rgba(255, 255, 255, 0.88) !important; backdrop-filter: blur(12px);
+      background: rgba(255, 255, 255, 0.82) !important; backdrop-filter: blur(8px);
       border: 1px solid rgba(220, 38, 38, 0.3) !important; border-radius: 14px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
       color: #1e293b;
     }
     #reader {
@@ -54,7 +64,7 @@
     #file-reader { position: absolute; left: -9999px; width: 300px; height: 300px; }
     .result-box {
       font-family: 'Orbitron', sans-serif; font-size: 1.15rem;
-      background: #f8fafc; border: 2px solid rgba(220, 38, 38, 0.35);
+      background: rgba(248, 250, 252, 0.95); border: 2px solid rgba(220, 38, 38, 0.35);
       border-radius: 10px; padding: 15px; margin-top: 15px;
       color: #0f172a;
       box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.04);
@@ -75,7 +85,7 @@
   <header class="top-header p-3 text-center">
     <h3 class="m-0"><i class="fa-solid fa-mobile-screen me-2"></i>PHONE QR SCANNER</h3>
     <small class="text-secondary fw-bold">Mega Prime Foods Inc. - Break Time Logger</small>
-    <div><small class="badge bg-danger">v11 Mega Prime BG + Voice</small></div>
+    <div><small class="badge bg-danger">v12 Portrait Fit BG + Voice</small></div>
   </header>
 
   <div class="container py-3 my-auto">
@@ -103,7 +113,7 @@
             <i class="fa-solid fa-stop me-2"></i>Stop Camera
           </button>
 
-          <label class="btn btn-outline-dark w-100 mb-3 fw-bold">
+          <label class="btn btn-outline-dark w-100 mb-3 fw-bold bg-white">
             <i class="fa-solid fa-image me-2 text-danger"></i>Camera not working? Take a photo of the QR
             <input type="file" id="qrPhoto" accept="image/*" capture="user" hidden onchange="scanPhoto(this)">
           </label>
@@ -119,7 +129,7 @@
 
           <!-- Forgot to Break In (needs supervisor PIN) -->
           <div class="mt-3 text-start">
-            <button class="btn btn-sm btn-outline-primary w-100 fw-bold" type="button" onclick="toggleFix()">
+            <button class="btn btn-sm btn-outline-primary w-100 fw-bold bg-white" type="button" onclick="toggleFix()">
               <i class="fa-solid fa-clock-rotate-left me-1"></i>Forgot to Break In?
             </button>
             <div id="fixBox" class="d-none mt-2 p-3 border border-primary rounded bg-light">
@@ -147,7 +157,6 @@
     let scanner = null;       // live camera scanner
     let fileScanner = null;   // photo scanner
     let busy = false, cameraOn = false, restartOnReturn = false;
-    // "user" = FRONT camera, "environment" = BACK camera
     let facing = "user";   // always open the FRONT camera first
     try { localStorage.removeItem("facing"); localStorage.removeItem("camId"); } catch (e) {}
     let lastId = "", lastTime = 0;
