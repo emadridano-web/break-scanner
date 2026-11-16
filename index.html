@@ -1,116 +1,296 @@
-<script>
-    let html5QrCode = null;
-    let busy = false;
-    let cameraOn = false;
-    let lastId = "";
-    let lastTime = 0;
+const CONFIG = {
+  EMP_SHEET: "Employees",
+  LOG_SHEET: "BreakLogs",
+  COOLDOWN_MS: 60 * 1000,   // ignore repeat scans of the same employee within 60 s
+  MAX_BREAK_MIN: 60,        // breaks longer than this are flagged OVERBREAK
+  ADMIN_PIN: "1234",        // supervisor PIN for "Forgot to Break In" (CHANGE THIS)
+  SCANNER_URL: "https://emadridano-web.github.io/break-scanner/"
+};
 
-    // Escape text before putting it into innerHTML
-    const esc = s => String(s).replace(/[&<>"']/g, c =>
-      ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const EMP_HEADERS = ["Employee ID", "Employee Name", "Department", "QR Code", "Status", "Last Scan"];
+const LOG_HEADERS = ["Date", "Employee ID", "Employee Name", "Action", "Timestamp", "Duration (Minutes)", "Remarks"];
 
-    const setResult = html => { document.getElementById("result").innerHTML = html; };
+/* ---------- Spreadsheet menu ---------- */
+function onOpen() {
+  SpreadsheetApp.getUi()
+    .createMenu("Break Logger")
+    .addItem("Set up / repair sheets", "setup")
+    .addItem("Generate QR codes", "generateQRCodes")
+    .addSeparator()
+    .addItem("Clear break logs (with backup)", "clearLogs")
+    .addToUi();
+}
 
-    // --- BAGONG FUNCTION PARA MAGSALITA ANG PHONE ---
-    function speakLoud(text) {
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel(); // Patigilin muna kung may nagsasalita pa para di magpatong-patong
-        const speech = new SpeechSynthesisUtterance(text);
-        speech.volume = 1; // Maximum volume sa code (0 to 1)
-        speech.rate = 1;   // Normal speed ng salita
-        speech.pitch = 1;  // Normal na boses
-        window.speechSynthesis.speak(speech);
-      }
+/* ---------- Helpers ---------- */
+function getSheet_(name, headers) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sh = ss.getSheetByName(name) || ss.insertSheet(name);
+  if (sh.getLastRow() === 0) {
+    sh.getRange(1, 1, 1, headers.length).setValues([headers]).setFontWeight("bold");
+    sh.setFrozenRows(1);
+  }
+  return sh;
+}
+
+function normalizeId_(v) {
+  return String(v == null ? "" : v).replace(/\s+/g, "");
+}
+
+/* ---------- Setup (safe to run again, does NOT delete data) ---------- */
+function setup() {
+  const emp = getSheet_(CONFIG.EMP_SHEET, EMP_HEADERS);
+  const log = getSheet_(CONFIG.LOG_SHEET, LOG_HEADERS);
+
+  emp.getRange(1, 1, 1, EMP_HEADERS.length).setValues([EMP_HEADERS]).setFontWeight("bold");
+  log.getRange(1, 1, 1, LOG_HEADERS.length).setValues([LOG_HEADERS]).setFontWeight("bold");
+  emp.setFrozenRows(1);
+  log.setFrozenRows(1);
+
+  emp.getRange("A:A").setNumberFormat("@");
+  log.getRange("B:B").setNumberFormat("@");
+  emp.getRange("F2:F").setNumberFormat("yyyy-mm-dd hh:mm:ss am/pm");
+  log.getRange("E2:E").setNumberFormat("yyyy-mm-dd hh:mm:ss am/pm");
+
+  if (emp.getLastRow() < 2) {
+    emp.getRange(2, 1, 3, 3).setValues([
+      ["001", "Juan Dela Cruz", "Packing"],
+      ["002", "Pedro Santos", "Filling"],
+      ["003", "Mario Reyes", "Packing"]
+    ]);
+  }
+
+  generateQRCodes();
+}
+
+function generateQRCodes() {
+  const emp = getSheet_(CONFIG.EMP_SHEET, EMP_HEADERS);
+  const n = emp.getLastRow() - 1;
+  if (n < 1) return;
+
+  const url = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=";
+  const formula = '=IF(RC1="","",IMAGE("' + url + '"&ENCODEURL(RC1)))';
+
+  emp.getRange(2, 4, n, 1).setFormulaR1C1(formula);
+  emp.setColumnWidth(4, 160);
+  emp.setRowHeights(2, n, 120);
+}
+
+/* ---------- Clear logs ----------
+   Saves a backup copy of BreakLogs, deletes all log rows (keeps header),
+   and resets every employee's Status / Last Scan.
+*/
+function clearLogs() {
+  const ui = SpreadsheetApp.getUi();
+  const answer = ui.alert(
+    "Clear break logs?",
+    "A backup copy of BreakLogs will be saved first, then all log rows will be deleted " +
+    "and every employee's Status will be reset. Continue?",
+    ui.ButtonSet.YES_NO
+  );
+  if (answer !== ui.Button.YES) return;
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const log = getSheet_(CONFIG.LOG_SHEET, LOG_HEADERS);
+    const emp = getSheet_(CONFIG.EMP_SHEET, EMP_HEADERS);
+
+    // 1. Backup
+    if (log.getLastRow() > 1) {
+      const stamp = Utilities.formatDate(new Date(), ss.getSpreadsheetTimeZone(), "yyyy-MM-dd HHmm");
+      log.copyTo(ss).setName("Backup " + stamp);
     }
 
-    async function startPhoneCamera() {
-      setResult('<i class="fa-solid fa-spinner fa-spin me-2 text-warning"></i>Starting Phone Camera...');
-
-      try {
-        if (!html5QrCode) {
-          html5QrCode = new Html5Qrcode("reader");
-        }
-        await html5QrCode.start(
-          { facingMode: "environment" },
-          { fps: 10, qrbox: { width: 220, height: 220 } },
-          function (text) { processEmployeeId(text, true); },
-          function () {}
-        );
-        cameraOn = true;
-        document.getElementById("btnStartMobile").classList.add("d-none");
-        setResult("Point phone camera at Employee QR Code");
-      } catch (err) {
-        setResult('<i class="fa-solid fa-triangle-exclamation text-danger me-2"></i>Camera permission denied. Allow camera access in your phone browser settings.');
-      }
+    // 2. Delete all log rows, keep header
+    if (log.getLastRow() > 1) {
+      log.getRange(2, 1, log.getLastRow() - 1, log.getLastColumn()).clearContent();
     }
 
-    function submitManualId() {
-      const val = document.getElementById("manualEmpId").value.trim();
-      if (!val) return alert("Please enter an Employee ID.");
-      processEmployeeId(val, false);
-      document.getElementById("manualEmpId").value = "";
+    // 3. Reset Status / Last Scan
+    if (emp.getLastRow() > 1) {
+      emp.getRange(2, 5, emp.getLastRow() - 1, 2).clearContent();
     }
 
-    function finish() {
-      busy = false;
-      if (cameraOn) {
-        setTimeout(function () {
-          try { html5QrCode.resume(); } catch (e) {}
-        }, 3000);
-      }
+    SpreadsheetApp.flush();
+  } finally {
+    lock.releaseLock();
+  }
+  ui.alert("Done. Logs cleared and a backup sheet was created.");
+}
+
+/* ---------- Web app ----------
+   .../exec?id=001                          -> normal scan (JSON)
+   .../exec?fix=in&id=001&time=13:30&pin=.. -> forgot to break in (JSON)
+   .../exec                                 -> button that opens the GitHub scanner
+*/
+function doGet(e) {
+  const p = (e && e.parameter) || {};
+  let result = null;
+
+  if (p.fix === "in") {
+    result = fixBreakIn(p.id, p.time, p.pin);
+  } else if (p.id) {
+    result = scanEmployee(p.id);
+  }
+
+  if (result) {
+    return ContentService
+      .createTextOutput(JSON.stringify(result))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  return HtmlService.createHtmlOutput(
+    '<base target="_top">' +
+    '<div style="font-family:sans-serif;text-align:center;padding:60px 20px;">' +
+    '<h2>Break Time Scanner</h2>' +
+    '<p>Tap the button to open the scanner with camera.</p>' +
+    '<a href="' + CONFIG.SCANNER_URL + '" target="_top" ' +
+    'style="display:inline-block;background:#dc3545;color:#fff;padding:16px 28px;' +
+    'border-radius:8px;font-size:20px;text-decoration:none;font-weight:bold;">OPEN SCANNER</a>' +
+    '</div>'
+  ).setTitle("Break Time Scanner")
+   .addMetaTag("viewport", "width=device-width, initial-scale=1");
+}
+
+/* ---------- Forgot to Break In ----------
+   Records the ACTUAL break-in time for an employee who is still ON BREAK.
+   Needs the supervisor PIN.
+*/
+function fixBreakIn(rawId, timeStr, pin) {
+  if (String(pin || "") !== String(CONFIG.ADMIN_PIN)) {
+    return { success: false, message: "Wrong supervisor PIN." };
+  }
+  const id = normalizeId_(rawId);
+  const m = String(timeStr || "").trim().match(/^(\d{1,2}):(\d{2})/);
+  if (!id || !m) {
+    return { success: false, message: "Enter the Employee ID and the actual break-in time." };
+  }
+
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(10000)) {
+    return { success: false, message: "System busy. Please try again." };
+  }
+
+  try {
+    const emp = getSheet_(CONFIG.EMP_SHEET, EMP_HEADERS);
+    const log = getSheet_(CONFIG.LOG_SHEET, LOG_HEADERS);
+
+    const lastRow = emp.getLastRow();
+    if (lastRow < 2) return { success: false, message: "No employee records found." };
+
+    const data = emp.getRange(2, 1, lastRow - 1, 6).getValues();
+    const idx = data.findIndex(function (r) { return normalizeId_(r[0]) === id; });
+    if (idx === -1) return { success: false, message: "Employee ID '" + id + "' not found." };
+
+    const name = String(data[idx][1]).trim();
+    const status = String(data[idx][4]).trim();
+    const breakOut = data[idx][5] instanceof Date ? data[idx][5] : null;
+
+    if (status !== "ON BREAK" || !breakOut) {
+      return { success: false, message: name + " is not on break. Nothing to fix." };
     }
 
-    function processEmployeeId(empId, fromCamera) {
-      empId = String(empId).trim();
-      if (busy) return;
+    const tz = SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone();
+    const breakDate = Utilities.formatDate(breakOut, tz, "yyyy-MM-dd");
+    const hh = ("0" + m[1]).slice(-2);
+    const actual = Utilities.parseDate(breakDate + " " + hh + ":" + m[2], tz, "yyyy-MM-dd HH:mm");
+    const now = new Date();
+    const outTime = Utilities.formatDate(breakOut, tz, "hh:mm a");
 
-      if (empId === lastId && Date.now() - lastTime < 60000) {
-        if (!fromCamera) {
-          setResult('<i class="fa-solid fa-clock text-warning me-2"></i>Already scanned. Please wait a minute.');
-        }
-        return;
-      }
-
-      busy = true;
-      lastId = empId;
-      lastTime = Date.now();
-
-      if (cameraOn) {
-        try { html5QrCode.pause(true); } catch (e) {}
-      }
-
-      setResult('<i class="fa-solid fa-spinner fa-spin me-2 text-warning"></i>Processing ID: ' + esc(empId));
-
-      google.script.run
-        .withSuccessHandler(function (res) {
-          if (res.success) {
-            const icon = res.action === "BREAK OUT"
-              ? "fa-person-walking-arrow-right text-warning"
-              : "fa-person-walking-arrow-loop text-success";
-
-            // 1. LALABAS ANG "THANK YOU!" SA SCREEN
-            setResult(
-              '<h4 class="text-success mb-2 fw-bold" style="letter-spacing: 2px;">THANK YOU!</h4>' +
-              '<i class="fa-solid ' + icon + ' me-2"></i>' + esc(res.name) + '<br>' +
-              '<strong>' + esc(res.action) + '</strong> - ' + esc(res.time) +
-              (res.duration !== undefined
-                ? '<br><span class="text-info">Duration: ' + esc(res.duration) + ' mins</span>'
-                : '')
-            );
-
-            // 2. MAGSASALITA ANG PHONE ("Thank you, Juan Dela Cruz")
-            speakLoud("Thank you, " + res.name);
-
-          } else {
-            setResult('<i class="fa-solid fa-triangle-exclamation text-danger me-2"></i>' + esc(res.message));
-          }
-          finish();
-        })
-        .withFailureHandler(function (err) {
-          lastId = ""; 
-          setResult('<i class="fa-solid fa-xmark text-danger me-2"></i>Error: ' + esc(err.message));
-          finish();
-        })
-        .scanEmployee(empId);
+    if (actual <= breakOut) {
+      return { success: false, message: "Break-in time must be after the BREAK OUT time (" + outTime + ")." };
     }
-  </script>
+    if (actual > now) {
+      return { success: false, message: "Break-in time cannot be in the future." };
+    }
+
+    const duration = Math.round((actual - breakOut) / 60000);
+    let remarks = "FORGOT TO BREAK IN (time entered manually)";
+    if (duration > CONFIG.MAX_BREAK_MIN) {
+      remarks += " | OVERBREAK (+" + (duration - CONFIG.MAX_BREAK_MIN) + " min)";
+    }
+
+    log.appendRow([breakDate, id, name, "BREAK IN", actual, duration, remarks]);
+    emp.getRange(idx + 2, 5, 1, 2).setValues([["WORKING", now]]);
+    SpreadsheetApp.flush();
+
+    return {
+      success: true,
+      name: name,
+      action: "BREAK IN",
+      time: Utilities.formatDate(actual, tz, "hh:mm a"),
+      duration: duration,
+      remarks: remarks
+    };
+  } catch (err) {
+    return { success: false, message: "Server error: " + err.message };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/* ---------- Main scan handler ---------- */
+function scanEmployee(rawId) {
+  const id = normalizeId_(rawId);
+  if (!id) return { success: false, message: "Empty QR code / Employee ID." };
+
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(10000)) {
+    return { success: false, message: "System busy. Please scan again." };
+  }
+
+  try {
+    const emp = getSheet_(CONFIG.EMP_SHEET, EMP_HEADERS);
+    const log = getSheet_(CONFIG.LOG_SHEET, LOG_HEADERS);
+
+    const lastRow = emp.getLastRow();
+    if (lastRow < 2) return { success: false, message: "No employee records found." };
+
+    const data = emp.getRange(2, 1, lastRow - 1, 6).getValues();
+    const idx = data.findIndex(function (r) { return normalizeId_(r[0]) === id; });
+    if (idx === -1) return { success: false, message: "Employee ID '" + id + "' not found." };
+
+    const row = data[idx];
+    const name = String(row[1]).trim();
+    const status = String(row[4]).trim();
+    const lastScan = row[5] instanceof Date ? row[5] : null;
+
+    const now = new Date();
+    const tz = SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone();
+    const today = Utilities.formatDate(now, tz, "yyyy-MM-dd");
+    const time = Utilities.formatDate(now, tz, "hh:mm:ss a");
+
+    if (lastScan && now - lastScan < CONFIG.COOLDOWN_MS) {
+      return { success: false, message: name + " just scanned. Please wait a minute." };
+    }
+
+    const onBreakToday = status === "ON BREAK" && lastScan &&
+      Utilities.formatDate(lastScan, tz, "yyyy-MM-dd") === today;
+
+    let action;
+    let duration = null;
+    let remarks = "";
+
+    if (onBreakToday) {
+      action = "BREAK IN";
+      duration = Math.round((now - lastScan) / 60000);
+      if (duration > CONFIG.MAX_BREAK_MIN) {
+        remarks = "OVERBREAK (+" + (duration - CONFIG.MAX_BREAK_MIN) + " min)";
+      }
+    } else {
+      action = "BREAK OUT";
+      if (status === "ON BREAK") remarks = "Previous break was not closed (no BREAK IN)";
+    }
+
+    log.appendRow([today, id, name, action, now, duration === null ? "" : duration, remarks]);
+    emp.getRange(idx + 2, 5, 1, 2).setValues([[action === "BREAK OUT" ? "ON BREAK" : "WORKING", now]]);
+    SpreadsheetApp.flush();
+
+    return { success: true, name: name, action: action, time: time, duration: duration, remarks: remarks };
+  } catch (err) {
+    return { success: false, message: "Server error: " + err.message };
+  } finally {
+    lock.releaseLock();
+  }
+}
