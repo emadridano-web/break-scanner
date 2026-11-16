@@ -64,7 +64,7 @@
   <header class="top-header p-3 text-center">
     <h3 class="m-0"><i class="fa-solid fa-mobile-screen me-2"></i>PHONE QR SCANNER</h3>
     <small>Mega Prime Foods Inc. - Break Time Logger</small>
-    <div><small class="text-warning">v8</small></div>
+    <div><small class="text-warning">v9 (Voice Enabled)</small></div>
   </header>
 
   <div class="container py-3 my-auto">
@@ -207,13 +207,34 @@
       return "Could not start camera (" + text + "). Use the photo button below instead.";
     }
 
-    /* ---------- Sound / vibration ---------- */
+    /* ---------- Sound / vibration / Voice ---------- */
     function unlockAudio() {
       try {
         if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         if (audioCtx.state === "suspended") audioCtx.resume();
+        // Unlock mobile voice synthesis on first user tap
+        if ('speechSynthesis' in window) {
+          const silent = new SpeechSynthesisUtterance("");
+          silent.volume = 0;
+          window.speechSynthesis.speak(silent);
+        }
       } catch (e) {}
     }
+
+    function speakLoud(text) {
+      try {
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+          const speech = new SpeechSynthesisUtterance(text);
+          speech.lang = "en-US";
+          speech.volume = 1; // Max volume (0 to 1)
+          speech.rate = 0.95; // Slightly clear pacing
+          speech.pitch = 1;
+          window.speechSynthesis.speak(speech);
+        }
+      } catch (e) {}
+    }
+
     function feedback(ok) {
       try { if (navigator.vibrate) navigator.vibrate(ok ? 120 : [80, 60, 80]); } catch (e) {}
       try {
@@ -445,13 +466,18 @@
     function showServerResult(res) {
       if (res && res.success) {
         const out = res.action === "BREAK OUT";
-        let html = icon(out ? "fa-person-walking-arrow-right text-warning"
+        let html = '<h4 class="text-success mb-2 fw-bold" style="letter-spacing: 2px;">THANK YOU!</h4>' +
+                   icon(out ? "fa-person-walking-arrow-right text-warning"
                             : "fa-person-walking-arrow-loop text-success") +
                    esc(res.name) + "<br><strong>" + esc(res.action) + "</strong> - " + esc(res.time);
         if (!out) html += '<br><span class="text-info">Duration: ' + esc(res.duration) + " mins</span>";
         if (res.remarks) html += '<br><span class="text-danger">' + esc(res.remarks) + "</span>";
         setResult(html);
         feedback(true);
+        // Magsasalita nang malakas pagkatapos ng maikling beep
+        setTimeout(function () {
+          speakLoud("Thank you, " + res.name);
+        }, 180);
       } else {
         setResult(ERR + esc(res ? res.message : "Unknown error"));
         feedback(false);
