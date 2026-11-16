@@ -70,20 +70,13 @@
     }
     .form-control::placeholder { color: #94a3b8; }
     .btn-mobile { padding: 12px; font-size: 1.1rem; font-family: 'Orbitron', sans-serif; font-weight: 700; }
-    
-    .break-selector .btn {
-      font-family: 'Orbitron', sans-serif;
-      font-weight: 700;
-      padding: 10px;
-      font-size: 0.95rem;
-    }
   </style>
 </head>
 <body>
   <header class="top-header p-3 text-center">
     <h3 class="m-0"><i class="fa-solid fa-mobile-screen me-2"></i>PHONE QR SCANNER</h3>
     <small class="text-secondary fw-bold">Mega Prime Foods Inc. - Break Time Logger</small>
-    <div><small class="badge bg-danger">v15 (30m / 1HR Break + Voice)</small></div>
+    <div><small class="badge bg-danger">v16 Auto Break + Voice</small></div>
   </header>
 
   <div class="container py-3 my-auto">
@@ -92,20 +85,6 @@
         <div class="p-3 p-md-4 bg-card text-center">
 
           <div id="warn" class="alert alert-warning small text-start d-none"></div>
-
-          <!-- PILIAN NG BREAK TIME -->
-          <div class="mb-3">
-            <label class="form-label small text-dark fw-bold d-block mb-1">
-              <i class="fa-solid fa-clock me-1 text-danger"></i>PILIIN ANG BREAK TIME BAGO MAG-SCAN:
-            </label>
-            <div class="btn-group w-100 break-selector shadow-sm" role="group">
-              <input type="radio" class="btn-check" name="breakOption" id="opt1st" value="1st Break" checked autocomplete="off">
-              <label class="btn btn-outline-danger" for="opt1st">1ST BREAK (30m)</label>
-
-              <input type="radio" class="btn-check" name="breakOption" id="opt2nd" value="2nd Break" autocomplete="off">
-              <label class="btn btn-outline-danger" for="opt2nd">2ND BREAK (1HR)</label>
-            </div>
-          </div>
 
           <div id="reader" class="mb-3"></div>
           <div id="file-reader"></div>
@@ -163,7 +142,7 @@
   </div>
 
   <script>
-    // PASTE YOUR APPS SCRIPT /exec URL HERE
+    // PALITAN ITO NG BAGONG APPS SCRIPT /exec URL MO KAPAG NAG-NEW DEPLOYMENT KA
     const API_URL = "https://script.google.com/macros/s/AKfycby5_30Te50gyAWRbhWNZmH_uWlKtDSy_IT2R7y7SuRjec79Uh2p6ofoOtrzv7vDYDXPvw/exec";
 
     let scanner = null;
@@ -182,25 +161,19 @@
     const SPIN = icon("fa-spinner fa-spin text-warning");
     const ERR = icon("fa-triangle-exclamation text-danger");
 
-    function getSelectedBreak() {
-      const checked = document.querySelector('input[name="breakOption"]:checked');
-      return checked ? checked.value : "1st Break";
-    }
-
     function inAppsScript() {
       return typeof google !== "undefined" && google.script && google.script.run;
     }
-    function callServer(id, breakType) {
+    function callServer(id) {
       if (inAppsScript()) {
         return new Promise(function (resolve, reject) {
           google.script.run
             .withSuccessHandler(resolve)
             .withFailureHandler(reject)
-            .scanEmployee(id, breakType);
+            .scanEmployee(id);
         });
       }
-      const url = API_URL + "?id=" + encodeURIComponent(id) + "&breakType=" + encodeURIComponent(breakType);
-      return fetch(url)
+      return fetch(API_URL + "?id=" + encodeURIComponent(id))
         .then(function (r) { return r.text(); })
         .then(function (t) {
           try { return JSON.parse(t); }
@@ -566,12 +539,11 @@
       busy = true;
       lastId = empId;
       lastTime = Date.now();
-      const chosenBreak = getSelectedBreak();
 
-      setResult(SPIN + "Processing ID: " + esc(empId) + " (" + esc(chosenBreak) + ")");
+      setResult(SPIN + "Processing ID: " + esc(empId));
 
       try {
-        const res = await callServer(empId, chosenBreak);
+        const res = await callServer(empId);
         showServerResult(res);
       } catch (err) {
         lastId = "";
