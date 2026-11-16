@@ -12,7 +12,7 @@
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&family=Rajdhani:wght@600;700&display=swap');
 
     body {
-      /* Malaking Logo sa pinakagitna na may malinis na puting background */
+      /* Malaking Logo sa pinakagitna */
       background: #ffffff url('logo.png') no-repeat center center fixed;
       background-size: min(98vw, 750px) auto;
       font-family: 'Rajdhani', sans-serif;
@@ -71,13 +71,21 @@
     }
     .form-control::placeholder { color: #94a3b8; }
     .btn-mobile { padding: 12px; font-size: 1.1rem; font-family: 'Orbitron', sans-serif; font-weight: 700; }
+    
+    /* Styling para sa 1st Break / 2nd Break selector */
+    .break-selector .btn {
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 700;
+      padding: 10px;
+      font-size: 0.95rem;
+    }
   </style>
 </head>
 <body>
   <header class="top-header p-3 text-center">
     <h3 class="m-0"><i class="fa-solid fa-mobile-screen me-2"></i>PHONE QR SCANNER</h3>
     <small class="text-secondary fw-bold">Mega Prime Foods Inc. - Break Time Logger</small>
-    <div><small class="badge bg-danger">v13 Center Logo + Voice</small></div>
+    <div><small class="badge bg-danger">v14 Break Selector + Overbreak Alert</small></div>
   </header>
 
   <div class="container py-3 my-auto">
@@ -86,6 +94,20 @@
         <div class="p-3 p-md-4 bg-card text-center">
 
           <div id="warn" class="alert alert-warning small text-start d-none"></div>
+
+          <!-- PILIAN NG BREAK TIME (1ST BREAK OR 2ND BREAK) -->
+          <div class="mb-3">
+            <label class="form-label small text-dark fw-bold d-block mb-1">
+              <i class="fa-solid fa-clock me-1 text-danger"></i>PILIIN ANG BREAK TIME BAGO MAG-SCAN:
+            </label>
+            <div class="btn-group w-100 break-selector shadow-sm" role="group">
+              <input type="radio" class="btn-check" name="breakOption" id="opt1st" value="1st Break" checked autocomplete="off">
+              <label class="btn btn-outline-danger" for="opt1st">1ST BREAK (30m)</label>
+
+              <input type="radio" class="btn-check" name="breakOption" id="opt2nd" value="2nd Break" autocomplete="off">
+              <label class="btn btn-outline-danger" for="opt2nd">2ND BREAK (30m)</label>
+            </div>
+          </div>
 
           <div id="reader" class="mb-3"></div>
           <div id="file-reader"></div>
@@ -162,19 +184,26 @@
     const SPIN = icon("fa-spinner fa-spin text-warning");
     const ERR = icon("fa-triangle-exclamation text-danger");
 
+    // Kunin kung 1st Break o 2nd Break ang naka-select
+    function getSelectedBreak() {
+      const checked = document.querySelector('input[name="breakOption"]:checked');
+      return checked ? checked.value : "1st Break";
+    }
+
     function inAppsScript() {
       return typeof google !== "undefined" && google.script && google.script.run;
     }
-    function callServer(id) {
+    function callServer(id, breakType) {
       if (inAppsScript()) {
         return new Promise(function (resolve, reject) {
           google.script.run
             .withSuccessHandler(resolve)
             .withFailureHandler(reject)
-            .scanEmployee(id);
+            .scanEmployee(id, breakType);
         });
       }
-      return fetch(API_URL + "?id=" + encodeURIComponent(id))
+      const url = API_URL + "?id=" + encodeURIComponent(id) + "&breakType=" + encodeURIComponent(breakType);
+      return fetch(url)
         .then(function (r) { return r.text(); })
         .then(function (t) {
           try { return JSON.parse(t); }
@@ -466,14 +495,19 @@
 
     function showServerResult(res) {
       if (res && res.success) {
-        const out = res.action === "BREAK OUT";
+        // Gumamit ng indexOf para kahit "BREAK OUT (1st Break)" ay makilala pa rin
+        const out = res.action.indexOf("BREAK OUT") !== -1;
         let html = '<h4 class="text-success mb-2 fw-bold" style="letter-spacing: 2px;">THANK YOU!</h4>' +
                    icon(out ? "fa-person-walking-arrow-right text-warning"
                             : "fa-person-walking-arrow-loop text-success") +
                    '<span class="text-dark fw-bold">' + esc(res.name) + '</span><br>' +
                    '<strong class="' + (out ? 'text-warning' : 'text-success') + '">' + esc(res.action) + '</strong> - ' + esc(res.time);
-        if (!out) html += '<br><span class="text-primary fw-bold">Duration: ' + esc(res.duration) + " mins</span>";
-        if (res.remarks) html += '<br><span class="text-danger fw-bold">' + esc(res.remarks) + "</span>";
+        if (!out && res.duration !== undefined) {
+          html += '<br><span class="text-primary fw-bold">Duration: ' + esc(res.duration) + " mins</span>";
+        }
+        if (res.remarks) {
+          html += '<br><span class="badge bg-danger mt-2 fs-6">' + esc(res.remarks) + "</span>";
+        }
         setResult(html);
         feedback(true);
         setTimeout(function () {
@@ -536,11 +570,12 @@
       busy = true;
       lastId = empId;
       lastTime = Date.now();
+      const chosenBreak = getSelectedBreak();
 
-      setResult(SPIN + "Processing ID: " + esc(empId));
+      setResult(SPIN + "Processing ID: " + esc(empId) + " (" + esc(chosenBreak) + ")");
 
       try {
-        const res = await callServer(empId);
+        const res = await callServer(empId, chosenBreak);
         showServerResult(res);
       } catch (err) {
         lastId = "";
