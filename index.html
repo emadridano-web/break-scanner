@@ -12,7 +12,6 @@
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&family=Rajdhani:wght@600;700&display=swap');
 
     body {
-      /* Malaking Logo sa pinakagitna */
       background: #ffffff url('logo.png') no-repeat center center fixed;
       background-size: min(98vw, 750px) auto;
       font-family: 'Rajdhani', sans-serif;
@@ -72,7 +71,6 @@
     .form-control::placeholder { color: #94a3b8; }
     .btn-mobile { padding: 12px; font-size: 1.1rem; font-family: 'Orbitron', sans-serif; font-weight: 700; }
     
-    /* Styling para sa 1st Break / 2nd Break selector */
     .break-selector .btn {
       font-family: 'Orbitron', sans-serif;
       font-weight: 700;
@@ -85,7 +83,7 @@
   <header class="top-header p-3 text-center">
     <h3 class="m-0"><i class="fa-solid fa-mobile-screen me-2"></i>PHONE QR SCANNER</h3>
     <small class="text-secondary fw-bold">Mega Prime Foods Inc. - Break Time Logger</small>
-    <div><small class="badge bg-danger">v14 Break Selector + Overbreak Alert</small></div>
+    <div><small class="badge bg-danger">v15 (30m / 1HR Break + Voice)</small></div>
   </header>
 
   <div class="container py-3 my-auto">
@@ -95,7 +93,7 @@
 
           <div id="warn" class="alert alert-warning small text-start d-none"></div>
 
-          <!-- PILIAN NG BREAK TIME (1ST BREAK OR 2ND BREAK) -->
+          <!-- PILIAN NG BREAK TIME -->
           <div class="mb-3">
             <label class="form-label small text-dark fw-bold d-block mb-1">
               <i class="fa-solid fa-clock me-1 text-danger"></i>PILIIN ANG BREAK TIME BAGO MAG-SCAN:
@@ -105,7 +103,7 @@
               <label class="btn btn-outline-danger" for="opt1st">1ST BREAK (30m)</label>
 
               <input type="radio" class="btn-check" name="breakOption" id="opt2nd" value="2nd Break" autocomplete="off">
-              <label class="btn btn-outline-danger" for="opt2nd">2ND BREAK (30m)</label>
+              <label class="btn btn-outline-danger" for="opt2nd">2ND BREAK (1HR)</label>
             </div>
           </div>
 
@@ -184,7 +182,6 @@
     const SPIN = icon("fa-spinner fa-spin text-warning");
     const ERR = icon("fa-triangle-exclamation text-danger");
 
-    // Kunin kung 1st Break o 2nd Break ang naka-select
     function getSelectedBreak() {
       const checked = document.querySelector('input[name="breakOption"]:checked');
       return checked ? checked.value : "1st Break";
@@ -495,7 +492,6 @@
 
     function showServerResult(res) {
       if (res && res.success) {
-        // Gumamit ng indexOf para kahit "BREAK OUT (1st Break)" ay makilala pa rin
         const out = res.action.indexOf("BREAK OUT") !== -1;
         let html = '<h4 class="text-success mb-2 fw-bold" style="letter-spacing: 2px;">THANK YOU!</h4>' +
                    icon(out ? "fa-person-walking-arrow-right text-warning"
