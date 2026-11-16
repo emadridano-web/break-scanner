@@ -1,88 +1,12 @@
-<script>
-    let html5QrCode = null;
-    let busy = false;
-    let cameraOn = false;
-    let lastId = "";
-    let lastTime = 0;
+setResult('<i class="fa-solid fa-spinner fa-spin me-2 text-warning"></i>Processing ID: ' + esc(empId));
 
-    // Escape text before putting it into innerHTML
-    const esc = s => String(s).replace(/[&<>"']/g, c =>
-      ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+      // PALITAN ANG BUONG google.script.run HANGGANG SA .scanEmployee(empId); NITO:
+      
+      const APPS_SCRIPT_URL = "I-PASTE_MO_DITO_ANG_IYONG_BAGONG_WEB_APP_URL";
 
-    const setResult = html => { document.getElementById("result").innerHTML = html; };
-
-    // --- BAGONG FUNCTION PARA MAGSALITA ANG PHONE ---
-    function speakLoud(text) {
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel(); // Patigilin muna kung may nagsasalita pa para di magpatong-patong
-        const speech = new SpeechSynthesisUtterance(text);
-        speech.volume = 1; // Maximum volume sa code (0 to 1)
-        speech.rate = 1;   // Normal speed ng salita
-        speech.pitch = 1;  // Normal na boses
-        window.speechSynthesis.speak(speech);
-      }
-    }
-
-    async function startPhoneCamera() {
-      setResult('<i class="fa-solid fa-spinner fa-spin me-2 text-warning"></i>Starting Phone Camera...');
-
-      try {
-        if (!html5QrCode) {
-          html5QrCode = new Html5Qrcode("reader");
-        }
-        await html5QrCode.start(
-          { facingMode: "environment" },
-          { fps: 10, qrbox: { width: 220, height: 220 } },
-          function (text) { processEmployeeId(text, true); },
-          function () {}
-        );
-        cameraOn = true;
-        document.getElementById("btnStartMobile").classList.add("d-none");
-        setResult("Point phone camera at Employee QR Code");
-      } catch (err) {
-        setResult('<i class="fa-solid fa-triangle-exclamation text-danger me-2"></i>Camera permission denied. Allow camera access in your phone browser settings.');
-      }
-    }
-
-    function submitManualId() {
-      const val = document.getElementById("manualEmpId").value.trim();
-      if (!val) return alert("Please enter an Employee ID.");
-      processEmployeeId(val, false);
-      document.getElementById("manualEmpId").value = "";
-    }
-
-    function finish() {
-      busy = false;
-      if (cameraOn) {
-        setTimeout(function () {
-          try { html5QrCode.resume(); } catch (e) {}
-        }, 3000);
-      }
-    }
-
-    function processEmployeeId(empId, fromCamera) {
-      empId = String(empId).trim();
-      if (busy) return;
-
-      if (empId === lastId && Date.now() - lastTime < 60000) {
-        if (!fromCamera) {
-          setResult('<i class="fa-solid fa-clock text-warning me-2"></i>Already scanned. Please wait a minute.');
-        }
-        return;
-      }
-
-      busy = true;
-      lastId = empId;
-      lastTime = Date.now();
-
-      if (cameraOn) {
-        try { html5QrCode.pause(true); } catch (e) {}
-      }
-
-      setResult('<i class="fa-solid fa-spinner fa-spin me-2 text-warning"></i>Processing ID: ' + esc(empId));
-
-      google.script.run
-        .withSuccessHandler(function (res) {
+      fetch(APPS_SCRIPT_URL + "?id=" + encodeURIComponent(empId))
+        .then(response => response.json())
+        .then(res => {
           if (res.success) {
             const icon = res.action === "BREAK OUT"
               ? "fa-person-walking-arrow-right text-warning"
@@ -98,7 +22,7 @@
                 : '')
             );
 
-            // 2. MAGSASALITA ANG PHONE ("Thank you, Juan Dela Cruz")
+            // 2. MAGSASALITA ANG PHONE
             speakLoud("Thank you, " + res.name);
 
           } else {
@@ -106,11 +30,8 @@
           }
           finish();
         })
-        .withFailureHandler(function (err) {
+        .catch(err => {
           lastId = ""; 
-          setResult('<i class="fa-solid fa-xmark text-danger me-2"></i>Error: ' + esc(err.message));
+          setResult('<i class="fa-solid fa-xmark text-danger me-2"></i>Error: Network disconnected or API failed.');
           finish();
-        })
-        .scanEmployee(empId);
-    }
-  </script>
+        });
