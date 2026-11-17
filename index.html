@@ -6,6 +6,7 @@
   <title>Break Time Scanner</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
   <style>
@@ -26,16 +27,16 @@
       background: rgba(255, 255, 255, 0.25); z-index: -1;
     }
     .top-header {
-      background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(10px);
+      background: rgba(255, 255, 255, 0.94); backdrop-filter: blur(10px);
       border-bottom: 3px solid #dc2626; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
       color: #0f172a;
     }
-    h3 {
+    h3, .orbitron {
       font-family: 'Orbitron', sans-serif; letter-spacing: 1px; font-weight: 800;
-      color: #b91c1c;
     }
+    h3 { color: #b91c1c; }
     .bg-card {
-      background: rgba(255, 255, 255, 0.85) !important; backdrop-filter: blur(8px);
+      background: rgba(255, 255, 255, 0.88) !important; backdrop-filter: blur(8px);
       border: 1px solid rgba(220, 38, 38, 0.3) !important; border-radius: 14px;
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
       color: #1e293b;
@@ -70,13 +71,50 @@
     }
     .form-control::placeholder { color: #94a3b8; }
     .btn-mobile { padding: 12px; font-size: 1.1rem; font-family: 'Orbitron', sans-serif; font-weight: 700; }
+
+    /* Dashboard styling */
+    .stat-card {
+      border-radius: 12px;
+      padding: 12px 15px;
+      border: 1px solid rgba(0,0,0,0.08);
+      background: #ffffff;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    .stat-num {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.7rem;
+      font-weight: 800;
+      line-height: 1.1;
+    }
+    .table-dash th {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      background: #f8fafc;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+    .table-dash td {
+      vertical-align: middle;
+      font-size: 0.98rem;
+    }
   </style>
 </head>
 <body>
-  <header class="top-header p-3 text-center">
-    <h3 class="m-0"><i class="fa-solid fa-mobile-screen me-2"></i>PHONE QR SCANNER</h3>
-    <small class="text-secondary fw-bold">Mega Prime Foods Inc. - Break Time Logger</small>
-    <div><small class="badge bg-danger">v19 Overbreak Voice Alert</small></div>
+  <header class="top-header p-3">
+    <div class="container d-flex justify-content-between align-items-center">
+      <div class="text-start">
+        <h3 class="m-0 fs-5 fs-md-3"><i class="fa-solid fa-mobile-screen me-2"></i>PHONE QR SCANNER</h3>
+        <small class="text-secondary fw-bold d-block">Mega Prime Foods Inc. - Break Time Logger</small>
+      </div>
+      <div class="text-end">
+        <button class="btn btn-dark btn-sm fw-bold shadow-sm px-3 py-2" onclick="openDashboardAuth()">
+          <i class="fa-solid fa-chart-line me-1 text-warning"></i>Dashboard
+        </button>
+        <div class="mt-1"><small class="badge bg-danger">v20 + Supervisor Dashboard</small></div>
+      </div>
+    </div>
   </header>
 
   <div class="container py-3 my-auto">
@@ -141,9 +179,150 @@
     </div>
   </div>
 
+  <!-- PIN Prompt Modal -->
+  <div class="modal fade" id="pinModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+      <div class="modal-content border-danger">
+        <div class="modal-header bg-danger text-white py-2">
+          <h6 class="modal-title orbitron mb-0"><i class="fa-solid fa-lock me-2"></i>SUPERVISOR PIN</h6>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body text-center">
+          <p class="small text-muted mb-2">Enter Supervisor PIN to view Break Dashboard</p>
+          <input type="password" id="dashPinInput" class="form-control text-center fs-5 fw-bold mb-2"
+                 placeholder="••••" inputmode="numeric" onkeydown="if(event.key==='Enter') verifyDashboardPin()">
+          <div id="pinError" class="text-danger small fw-bold mb-2 d-none"></div>
+          <button class="btn btn-danger w-100 fw-bold" id="btnUnlockDash" onclick="verifyDashboardPin()">
+            <i class="fa-solid fa-unlock me-1"></i>Open Dashboard
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Full-Screen Supervisor Dashboard Modal -->
+  <div class="modal fade" id="dashboardModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable modal-fullscreen-md-down">
+      <div class="modal-content bg-light">
+        <div class="modal-header bg-dark text-white py-2">
+          <div>
+            <h5 class="modal-title orbitron text-warning mb-0">
+              <i class="fa-solid fa-chart-pie me-2"></i>BREAK MONITOR DASHBOARD
+            </h5>
+            <small class="text-light opacity-75" id="dashLastUpdated">Loading live data...</small>
+          </div>
+          <div class="d-flex gap-2 align-items-center">
+            <button class="btn btn-sm btn-outline-warning fw-bold" onclick="loadDashboardData()">
+              <i class="fa-solid fa-arrows-rotate me-1" id="dashSpinIcon"></i>Refresh
+            </button>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+          </div>
+        </div>
+
+        <div class="modal-body p-3">
+          <!-- Summary Cards -->
+          <div class="row g-2 mb-3">
+            <div class="col-6 col-md-3">
+              <div class="stat-card border-start border-4 border-primary">
+                <div class="small text-muted fw-bold">ON BREAK (REGULAR)</div>
+                <div class="stat-num text-primary" id="statOnRegular">0</div>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="stat-card border-start border-4 border-warning">
+                <div class="small text-muted fw-bold">ON BREAK (AGENCY)</div>
+                <div class="stat-num text-warning" id="statOnAgency">0</div>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="stat-card border-start border-4 border-success">
+                <div class="small text-muted fw-bold">COMPLETED (12H SHIFT)</div>
+                <div class="stat-num text-success" id="statCompleted">0</div>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="stat-card border-start border-4 border-danger">
+                <div class="small text-muted fw-bold">OVERBREAKS (12H SHIFT)</div>
+                <div class="stat-num text-danger" id="statOverbreak">0</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Filter & Search Bar -->
+          <div class="card border-0 shadow-sm mb-3">
+            <div class="card-body p-2 d-flex flex-wrap gap-2 justify-content-between align-items-center">
+              <div class="btn-group btn-group-sm" role="group">
+                <button type="button" class="btn btn-dark active" id="filterAll" onclick="setDashFilter('ALL')">All</button>
+                <button type="button" class="btn btn-outline-primary" id="filterRegular" onclick="setDashFilter('Regular')">Regular</button>
+                <button type="button" class="btn btn-outline-warning text-dark" id="filterAgency" onclick="setDashFilter('Agency')">Agency</button>
+              </div>
+              <div class="input-group input-group-sm" style="max-width: 280px;">
+                <span class="input-group-text bg-white"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+                <input type="text" id="dashSearch" class="form-control" placeholder="Search Name, ID, or Position..." oninput="renderDashboardTables()">
+              </div>
+            </div>
+          </div>
+
+          <!-- Currently On Break Table -->
+          <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header bg-white fw-bold text-danger d-flex justify-content-between align-items-center">
+              <span><i class="fa-solid fa-person-walking-arrow-right me-2"></i>CURRENTLY ON BREAK (LIVE TIMER)</span>
+              <span class="badge bg-danger" id="onBreakBadge">0</span>
+            </div>
+            <div class="table-responsive" style="max-height: 260px;">
+              <table class="table table-hover table-sm table-dash mb-0">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Employee Name</th>
+                    <th>Position</th>
+                    <th>Status</th>
+                    <th>Break</th>
+                    <th>Time Out</th>
+                    <th>Elapsed / Limit</th>
+                  </tr>
+                </thead>
+                <tbody id="onBreakTbody">
+                  <tr><td colspan="7" class="text-center text-muted py-3">Loading...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Recent Shift Logs Table -->
+          <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white fw-bold text-dark">
+              <i class="fa-solid fa-clock-rotate-left me-2 text-primary"></i>RECENT BREAK LOGS (CURRENT SHIFT)
+            </div>
+            <div class="table-responsive" style="max-height: 300px;">
+              <table class="table table-striped table-sm table-dash mb-0">
+                <thead>
+                  <tr>
+                    <th>Time</th>
+                    <th>ID</th>
+                    <th>Employee Name</th>
+                    <th>Position</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                    <th>Duration</th>
+                    <th>Remarks</th>
+                  </tr>
+                </thead>
+                <tbody id="recentLogsTbody">
+                  <tr><td colspan="8" class="text-center text-muted py-3">Loading...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
     // PALITAN ITO NG BAGONG APPS SCRIPT /exec URL MO KAPAG NAG-NEW DEPLOYMENT KA
-    const API_URL = "https://script.google.com/macros/s/AKfycbyqzX2Za2gAycogzWoAQU5Y4jKP4eA_gU-YEGdlAzyWdGvDEXTVAqkkjZbinhBfUEJGHQ/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycbwlu4Jj2WRaJlqZsSFznGhYgoL0-bGDfrZACqRZAXM13G0Br419S3lF_mKR5qGLhInZwg/exec";
 
     let scanner = null;
     let fileScanner = null;
@@ -485,7 +664,6 @@
         }
         setResult(html);
 
-        // Kapag OVERBREAK: mag-warning beep at magsalita ng "Warning! Over break."
         if (isOverbreak) {
           feedback(false);
           speakLoud("Warning! Over break.");
@@ -589,6 +767,242 @@
         feedback(false);
       }
       finish();
+    }
+
+    /* ---------- SUPERVISOR DASHBOARD LOGIC ---------- */
+    let dashPin = sessionStorage.getItem("supervisorDashPin") || "";
+    let dashData = null;
+    let dashFilter = "ALL";
+    let dashRefreshTimer = null;
+    let dashClockTimer = null;
+    let timeOffsetMs = 0;
+
+    function openDashboardAuth() {
+      if (dashPin) {
+        openDashboardModal();
+      } else {
+        $("dashPinInput").value = "";
+        $("pinError").classList.add("d-none");
+        const modal = new bootstrap.Modal($("pinModal"));
+        modal.show();
+        setTimeout(() => $("dashPinInput").focus(), 400);
+      }
+    }
+
+    async function verifyDashboardPin() {
+      const entered = $("dashPinInput").value.trim();
+      if (!entered) {
+        $("pinError").textContent = "Please enter the Supervisor PIN.";
+        $("pinError").classList.remove("d-none");
+        return;
+      }
+
+      $("btnUnlockDash").disabled = true;
+      $("btnUnlockDash").innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i>Checking...';
+      $("pinError").classList.add("d-none");
+
+      try {
+        const res = await fetchDashboardFromServer(entered);
+        if (res && res.success) {
+          dashPin = entered;
+          sessionStorage.setItem("supervisorDashPin", entered);
+          dashData = res;
+          timeOffsetMs = res.serverNowMs - Date.now();
+          bootstrap.Modal.getInstance($("pinModal")).hide();
+          openDashboardModal(true);
+        } else {
+          $("pinError").textContent = (res && res.message) || "Wrong PIN.";
+          $("pinError").classList.remove("d-none");
+        }
+      } catch (e) {
+        $("pinError").textContent = "Connection error. Check internet or deployment.";
+        $("pinError").classList.remove("d-none");
+      } finally {
+        $("btnUnlockDash").disabled = false;
+        $("btnUnlockDash").innerHTML = '<i class="fa-solid fa-unlock me-1"></i>Open Dashboard';
+      }
+    }
+
+    function openDashboardModal(skipFirstFetch) {
+      const modalEl = $("dashboardModal");
+      const modal = new bootstrap.Modal(modalEl);
+      modal.show();
+
+      if (skipFirstFetch && dashData) {
+        updateDashboardUI();
+      } else {
+        loadDashboardData();
+      }
+
+      // Auto-refresh bawat 20 seconds habang nakabukas ang dashboard
+      clearInterval(dashRefreshTimer);
+      dashRefreshTimer = setInterval(loadDashboardData, 20000);
+
+      // Live second-by-second countdown/elapsed update para sa On Break table
+      clearInterval(dashClockTimer);
+      dashClockTimer = setInterval(updateLiveTimers, 1000);
+
+      modalEl.addEventListener("hidden.bs.modal", function () {
+        clearInterval(dashRefreshTimer);
+        clearInterval(dashClockTimer);
+      }, { once: true });
+    }
+
+    function fetchDashboardFromServer(pin) {
+      if (inAppsScript()) {
+        return new Promise(function (resolve, reject) {
+          google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)
+            .getDashboardData(pin);
+        });
+      }
+      return fetch(API_URL + "?action=dashboard&pin=" + encodeURIComponent(pin))
+        .then(r => r.json());
+    }
+
+    async function loadDashboardData() {
+      if (!dashPin) return;
+      const spinIcon = $("dashSpinIcon");
+      if (spinIcon) spinIcon.classList.add("fa-spin");
+
+      try {
+        const res = await fetchDashboardFromServer(dashPin);
+        if (res && res.success) {
+          dashData = res;
+          timeOffsetMs = res.serverNowMs - Date.now();
+          updateDashboardUI();
+        } else if (res && !res.success) {
+          dashPin = "";
+          sessionStorage.removeItem("supervisorDashPin");
+          bootstrap.Modal.getInstance($("dashboardModal")).hide();
+        }
+      } catch (e) {
+        $("dashLastUpdated").textContent = "Failed to refresh. Retrying...";
+      } finally {
+        if (spinIcon) spinIcon.classList.remove("fa-spin");
+      }
+    }
+
+    function setDashFilter(filter) {
+      dashFilter = filter;
+      $("filterAll").className = filter === "ALL" ? "btn btn-dark active" : "btn btn-outline-dark";
+      $("filterRegular").className = filter === "Regular" ? "btn btn-primary active" : "btn btn-outline-primary";
+      $("filterAgency").className = filter === "Agency" ? "btn btn-warning text-dark active" : "btn btn-outline-warning text-dark";
+      renderDashboardTables();
+    }
+
+    function updateDashboardUI() {
+      if (!dashData) return;
+      $("statOnRegular").textContent = dashData.stats.onBreakRegular;
+      $("statOnAgency").textContent = dashData.stats.onBreakAgency;
+      $("statCompleted").textContent = dashData.stats.completedShift;
+      $("statOverbreak").textContent = dashData.stats.overbreakShift;
+
+      const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      $("dashLastUpdated").textContent = "Last updated: " + nowStr + " (Auto-refreshes every 20s)";
+      renderDashboardTables();
+    }
+
+    function formatElapsed(ms) {
+      const totalSec = Math.max(0, Math.floor(ms / 1000));
+      const mins = Math.floor(totalSec / 60);
+      const secs = totalSec % 60;
+      return mins + "m " + (secs < 10 ? "0" : "") + secs + "s";
+    }
+
+    function renderDashboardTables() {
+      if (!dashData) return;
+      const q = ($("dashSearch").value || "").trim().toLowerCase();
+
+      const matchesFilter = item => {
+        if (dashFilter !== "ALL" && item.status !== dashFilter) return false;
+        if (!q) return true;
+        return (item.name && item.name.toLowerCase().indexOf(q) !== -1) ||
+               (item.id && item.id.toLowerCase().indexOf(q) !== -1) ||
+               (item.position && item.position.toLowerCase().indexOf(q) !== -1);
+      };
+
+      // 1. Render Currently On Break
+      const filteredOnBreak = dashData.onBreak.filter(matchesFilter);
+      $("onBreakBadge").textContent = filteredOnBreak.length;
+
+      if (!filteredOnBreak.length) {
+        $("onBreakTbody").innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3">No employees currently on break.</td></tr>';
+      } else {
+        const nowAdjusted = Date.now() + timeOffsetMs;
+        $("onBreakTbody").innerHTML = filteredOnBreak.map(item => {
+          const elapsedMs = nowAdjusted - item.tsMs;
+          const elapsedMins = Math.floor(elapsedMs / 60000);
+          const isOver = elapsedMins > item.limitMins;
+          const statusBadge = item.status === "Agency"
+            ? '<span class="badge bg-warning text-dark">Agency</span>'
+            : '<span class="badge bg-primary">Regular</span>';
+
+          return '<tr class="' + (isOver ? 'table-danger' : '') + '">' +
+            '<td class="fw-bold">' + esc(item.id) + '</td>' +
+            '<td class="fw-bold">' + esc(item.name) + '</td>' +
+            '<td>' + esc(item.position || '-') + '</td>' +
+            '<td>' + statusBadge + '</td>' +
+            '<td><span class="badge bg-secondary">' + esc(item.breakType) + '</span></td>' +
+            '<td>' + esc(item.timeStr) + '</td>' +
+            '<td class="live-timer fw-bold ' + (isOver ? 'text-danger' : 'text-success') + '" data-ts="' + item.tsMs + '" data-limit="' + item.limitMins + '">' +
+              formatElapsed(elapsedMs) + ' / ' + item.limitMins + 'm' +
+              (isOver ? ' <span class="badge bg-danger ms-1">OVERDUE</span>' : '') +
+            '</td>' +
+          '</tr>';
+        }).join("");
+      }
+
+      // 2. Render Recent Logs
+      const filteredLogs = dashData.recentLogs.filter(matchesFilter);
+      if (!filteredLogs.length) {
+        $("recentLogsTbody").innerHTML = '<tr><td colspan="8" class="text-center text-muted py-3">No break logs found for this filter.</td></tr>';
+      } else {
+        $("recentLogsTbody").innerHTML = filteredLogs.map(item => {
+          const isOut = item.action === "BREAK OUT";
+          const isOver = item.remarks && item.remarks.toUpperCase().indexOf("OVERBREAK") !== -1;
+          const statusBadge = item.status === "Agency"
+            ? '<span class="badge bg-warning text-dark">Agency</span>'
+            : '<span class="badge bg-primary">Regular</span>';
+          const actionBadge = isOut
+            ? '<span class="badge bg-warning text-dark">BREAK OUT</span>'
+            : '<span class="badge bg-success">BREAK IN</span>';
+
+          let remarkBadge = "";
+          if (isOver) remarkBadge = '<span class="badge bg-danger">' + esc(item.remarks) + '</span>';
+          else if (item.remarks === "OK") remarkBadge = '<span class="badge bg-success">OK</span>';
+          else if (item.remarks) remarkBadge = '<span class="badge bg-secondary">' + esc(item.remarks) + '</span>';
+
+          return '<tr>' +
+            '<td>' + esc(item.timeStr) + '</td>' +
+            '<td class="fw-bold">' + esc(item.id) + '</td>' +
+            '<td class="fw-bold">' + esc(item.name) + '</td>' +
+            '<td>' + esc(item.position || '-') + '</td>' +
+            '<td>' + statusBadge + '</td>' +
+            '<td>' + actionBadge + ' <small class="text-muted">(' + esc(item.breakType) + ')</small></td>' +
+            '<td class="fw-bold">' + (item.duration !== null ? esc(item.duration) + ' mins' : '-') + '</td>' +
+            '<td>' + remarkBadge + '</td>' +
+          '</tr>';
+        }).join("");
+      }
+    }
+
+    function updateLiveTimers() {
+      const cells = document.querySelectorAll(".live-timer");
+      if (!cells.length) return;
+      const nowAdjusted = Date.now() + timeOffsetMs;
+
+      cells.forEach(td => {
+        const tsMs = Number(td.getAttribute("data-ts"));
+        const limit = Number(td.getAttribute("data-limit"));
+        const elapsedMs = nowAdjusted - tsMs;
+        const isOver = Math.floor(elapsedMs / 60000) > limit;
+
+        td.className = "live-timer fw-bold " + (isOver ? "text-danger" : "text-success");
+        td.innerHTML = formatElapsed(elapsedMs) + " / " + limit + "m" +
+          (isOver ? ' <span class="badge bg-danger ms-1">OVERDUE</span>' : "");
+        const tr = td.closest("tr");
+        if (tr) tr.classList.toggle("table-danger", isOver);
+      });
     }
   </script>
 </body>
