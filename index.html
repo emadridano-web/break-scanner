@@ -72,7 +72,6 @@
     .form-control::placeholder { color: #94a3b8; }
     .btn-mobile { padding: 12px; font-size: 1.1rem; font-family: 'Orbitron', sans-serif; font-weight: 700; }
 
-    /* Dashboard styling */
     .stat-card {
       border-radius: 12px;
       padding: 12px 15px;
@@ -112,7 +111,7 @@
         <button class="btn btn-dark btn-sm fw-bold shadow-sm px-3 py-2" onclick="openDashboardAuth()">
           <i class="fa-solid fa-chart-line me-1 text-warning"></i>Dashboard
         </button>
-        <div class="mt-1"><small class="badge bg-danger">v20 + Supervisor Dashboard</small></div>
+        <div class="mt-1"><small class="badge bg-danger">v21 Zero-Delay Scan</small></div>
       </div>
     </div>
   </header>
@@ -156,7 +155,7 @@
             </div>
           </div>
 
-          <!-- Forgot to Break In (needs supervisor PIN) -->
+          <!-- Forgot to Break In -->
           <div class="mt-3 text-start">
             <button class="btn btn-sm btn-outline-primary w-100 fw-bold bg-white" type="button" onclick="toggleFix()">
               <i class="fa-solid fa-clock-rotate-left me-1"></i>Forgot to Break In?
@@ -166,7 +165,9 @@
               <input type="text" id="fixId" class="form-control mb-2" placeholder="Employee ID" inputmode="numeric">
               <label class="form-label small text-dark fw-bold mb-1">Actual break-in time</label>
               <input type="time" id="fixTime" class="form-control mb-2">
-              <input type="password" id="fixPin" class="form-control mb-2" placeholder="Supervisor PIN" inputmode="numeric">
+              <input type="tel" id="fixPin" name="fix_pin_noconflict" autocomplete="one-time-code"
+                     class="form-control mb-2" style="-webkit-text-security: disc;"
+                     placeholder="Supervisor PIN" inputmode="numeric">
               <button class="btn btn-primary w-100 fw-bold" type="button" onclick="submitFix()">
                 <i class="fa-solid fa-floppy-disk me-1"></i>Save Break In
               </button>
@@ -189,7 +190,8 @@
         </div>
         <div class="modal-body text-center">
           <p class="small text-muted mb-2">Enter Supervisor PIN to view Break Dashboard</p>
-          <input type="password" id="dashPinInput" class="form-control text-center fs-5 fw-bold mb-2"
+          <input type="tel" id="dashPinInput" name="dash_pin_noconflict" autocomplete="one-time-code"
+                 class="form-control text-center fs-5 fw-bold mb-2" style="-webkit-text-security: disc;"
                  placeholder="••••" inputmode="numeric" onkeydown="if(event.key==='Enter') verifyDashboardPin()">
           <div id="pinError" class="text-danger small fw-bold mb-2 d-none"></div>
           <button class="btn btn-danger w-100 fw-bold" id="btnUnlockDash" onclick="verifyDashboardPin()">
@@ -220,7 +222,6 @@
         </div>
 
         <div class="modal-body p-3">
-          <!-- Summary Cards -->
           <div class="row g-2 mb-3">
             <div class="col-6 col-md-3">
               <div class="stat-card border-start border-4 border-primary">
@@ -248,7 +249,6 @@
             </div>
           </div>
 
-          <!-- Filter & Search Bar -->
           <div class="card border-0 shadow-sm mb-3">
             <div class="card-body p-2 d-flex flex-wrap gap-2 justify-content-between align-items-center">
               <div class="btn-group btn-group-sm" role="group">
@@ -263,7 +263,6 @@
             </div>
           </div>
 
-          <!-- Currently On Break Table -->
           <div class="card border-0 shadow-sm mb-3">
             <div class="card-header bg-white fw-bold text-danger d-flex justify-content-between align-items-center">
               <span><i class="fa-solid fa-person-walking-arrow-right me-2"></i>CURRENTLY ON BREAK (LIVE TIMER)</span>
@@ -289,7 +288,6 @@
             </div>
           </div>
 
-          <!-- Recent Shift Logs Table -->
           <div class="card border-0 shadow-sm">
             <div class="card-header bg-white fw-bold text-dark">
               <i class="fa-solid fa-clock-rotate-left me-2 text-primary"></i>RECENT BREAK LOGS (CURRENT SHIFT)
@@ -314,7 +312,6 @@
               </table>
             </div>
           </div>
-
         </div>
       </div>
     </div>
@@ -322,7 +319,7 @@
 
   <script>
     // PALITAN ITO NG BAGONG APPS SCRIPT /exec URL MO KAPAG NAG-NEW DEPLOYMENT KA
-    const API_URL = "https://script.google.com/macros/s/AKfycbwlu4Jj2WRaJlqZsSFznGhYgoL0-bGDfrZACqRZAXM13G0Br419S3lF_mKR5qGLhInZwg/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycbxdV5ZhNcMtqSmHSLF22eoAzvF84C7mNY66bosmh-TQDn3mkaFDdL0N_k7rm8h52ExwGQ/exec";
 
     let scanner = null;
     let fileScanner = null;
@@ -332,8 +329,11 @@
     let lastId = "", lastTime = 0;
     let audioCtx = null;
 
+    // Local Directory & Break State para sa 0.1-second instant display
     let empCache = {};
+    let empStateCache = {};
     try { empCache = JSON.parse(localStorage.getItem("empNameCache") || "{}"); } catch (e) {}
+    try { empStateCache = JSON.parse(localStorage.getItem("empStateCache") || "{}"); } catch (e) {}
 
     const $ = id => document.getElementById(id);
     const esc = s => String(s).replace(/[&<>"']/g, c =>
@@ -346,13 +346,26 @@
     function inAppsScript() {
       return typeof google !== "undefined" && google.script && google.script.run;
     }
+
+    // I-preload ang lahat ng empleyado sa background pagbukas ng page
+    function preloadEmployees() {
+      const handler = function (res) {
+        if (res && res.success && res.employees) {
+          empCache = Object.assign(empCache, res.employees);
+          try { localStorage.setItem("empNameCache", JSON.stringify(empCache)); } catch (e) {}
+        }
+      };
+      if (inAppsScript()) {
+        google.script.run.withSuccessHandler(handler).getEmployeeDirectory();
+      } else if (API_URL.indexOf("PASTE_YOUR_ID_HERE") === -1) {
+        fetch(API_URL + "?action=employees").then(r => r.json()).then(handler).catch(() => {});
+      }
+    }
+
     function callServer(id) {
       if (inAppsScript()) {
         return new Promise(function (resolve, reject) {
-          google.script.run
-            .withSuccessHandler(resolve)
-            .withFailureHandler(reject)
-            .scanEmployee(id);
+          google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).scanEmployee(id);
         });
       }
       return fetch(API_URL + "?id=" + encodeURIComponent(id))
@@ -363,8 +376,8 @@
         });
     }
 
-    /* ---------- Environment checks ---------- */
     window.addEventListener("load", function () {
+      preloadEmployees();
       const ua = navigator.userAgent || "";
       const warn = [];
       if (!inAppsScript() && API_URL.indexOf("PASTE_YOUR_ID_HERE") !== -1) {
@@ -399,7 +412,6 @@
       return "Could not start camera (" + text + "). Use the photo button below instead.";
     }
 
-    /* ---------- Sound / vibration / Voice ---------- */
     function unlockAudio() {
       try {
         if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -438,7 +450,6 @@
       } catch (e) {}
     }
 
-    /* ---------- Live camera (Turbo Settings) ---------- */
     function newScanner() {
       try { if (scanner) scanner.clear(); } catch (e) {}
       scanner = new Html5Qrcode("reader", {
@@ -473,18 +484,14 @@
 
       try {
         let started = false, lastErr = null;
-
         if (camId) {
-          try { await tryStart(camId); started = true; }
-          catch (e) { lastErr = e; camId = ""; }
+          try { await tryStart(camId); started = true; } catch (e) { lastErr = e; camId = ""; }
         }
         if (!started) {
-          try { await tryStart({ facingMode: { exact: facing } }); started = true; }
-          catch (e) { lastErr = e; }
+          try { await tryStart({ facingMode: { exact: facing } }); started = true; } catch (e) { lastErr = e; }
         }
         if (!started) {
-          try { await tryStart({ facingMode: facing }); started = true; }
-          catch (e) { lastErr = e; }
+          try { await tryStart({ facingMode: facing }); started = true; } catch (e) { lastErr = e; }
         }
         if (!started) {
           const cams = await Html5Qrcode.getCameras();
@@ -521,9 +528,7 @@
       if (actual === "user") return;
 
       let cams = [];
-      try {
-        cams = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === "videoinput");
-      } catch (e) { return; }
+      try { cams = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === "videoinput"); } catch (e) { return; }
       if (cams.length < 2) return;
 
       const labeledFront = cams.find(d => /front|user|face|selfie/i.test(d.label));
@@ -533,8 +538,7 @@
       if (!target) return;
 
       try { await scanner.stop(); } catch (e) {}
-      try { await tryStart(target.deviceId); }
-      catch (e) { await tryStart({ facingMode: "user" }); }
+      try { await tryStart(target.deviceId); } catch (e) { await tryStart({ facingMode: "user" }); }
     }
 
     async function fillCameraList() {
@@ -584,8 +588,7 @@
         const opt = Array.from($("camSelect").options).find(o => o.value === id);
         label = opt ? opt.textContent : "";
       } catch (e) {}
-      $("camInfo").textContent = "Camera: " + (label || "unknown") +
-        " | facing: " + (actual || "not reported");
+      $("camInfo").textContent = "Camera: " + (label || "unknown") + " | facing: " + (actual || "not reported");
     }
 
     async function switchCamera() {
@@ -608,7 +611,6 @@
       }
     });
 
-    /* ---------- Photo fallback ---------- */
     async function scanPhoto(input) {
       unlockAudio();
       const file = input.files && input.files[0];
@@ -631,7 +633,6 @@
       }
     }
 
-    /* ---------- Manual entry ---------- */
     function submitManualId() {
       unlockAudio();
       const val = $("manualEmpId").value.trim();
@@ -640,7 +641,6 @@
       $("manualEmpId").value = "";
     }
 
-    /* ---------- Send to Apps Script ---------- */
     function finish() {
       busy = false;
     }
@@ -677,7 +677,6 @@
       }
     }
 
-    /* ---------- Forgot to Break In ---------- */
     function toggleFix() {
       $("fixBox").classList.toggle("d-none");
     }
@@ -706,6 +705,8 @@
         }
         showServerResult(res, false);
         if (res && res.success) {
+          empStateCache[id] = { isOut: false, ts: Date.now() };
+          try { localStorage.setItem("empStateCache", JSON.stringify(empStateCache)); } catch (e) {}
           $("fixId").value = ""; $("fixTime").value = ""; $("fixPin").value = "";
           $("fixBox").classList.add("d-none");
         }
@@ -716,6 +717,7 @@
       }
     }
 
+    // ZERO-DELAY PREDICTIVE DISPLAY + BACKGROUND SYNC
     async function processEmployeeId(empId, fromCamera) {
       empId = String(empId).trim();
       if (!empId || busy) return;
@@ -730,20 +732,30 @@
       lastTime = Date.now();
 
       const cachedName = empCache[empId];
+      const nowTimeStr = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
       let alreadySpoken = false;
 
       if (cachedName) {
         alreadySpoken = true;
         feedback(true);
         speakLoud("Thank you");
+
+        // Hulaan agad ang BREAK OUT / BREAK IN base sa local state para 0.1s labas agad ang oras at action
+        const prev = empStateCache[empId];
+        const withinShift = prev && (Date.now() - prev.ts) < (12 * 60 * 60 * 1000);
+        const predictOut = !(withinShift && prev.isOut);
+        const predAction = predictOut ? "BREAK OUT" : "BREAK IN";
+
         setResult(
           '<h4 class="text-success mb-2 fw-bold" style="letter-spacing: 2px;">THANK YOU!</h4>' +
+          icon(predictOut ? "fa-person-walking-arrow-right text-warning" : "fa-person-walking-arrow-loop text-success") +
           '<span class="text-dark fw-bold">' + esc(cachedName) + '</span><br>' +
-          '<small class="text-muted">' + SPIN + 'Saving to sheet...</small>'
+          '<strong class="' + (predictOut ? 'text-warning' : 'text-success') + '">' + predAction + '</strong> - ' + esc(nowTimeStr) +
+          '<div class="small text-muted mt-1"><i class="fa-solid fa-cloud-arrow-up me-1"></i>Recording...</div>'
         );
       } else {
         feedback(true);
-        setResult(SPIN + "Reading ID: " + esc(empId) + "...");
+        setResult(SPIN + "Reading ID: " + esc(empId) + " - " + esc(nowTimeStr));
       }
 
       try {
@@ -751,6 +763,11 @@
         if (res && res.name) {
           empCache[empId] = res.name;
           try { localStorage.setItem("empNameCache", JSON.stringify(empCache)); } catch (e) {}
+        }
+        if (res && res.success) {
+          const isNowOut = res.action.indexOf("BREAK OUT") !== -1;
+          empStateCache[empId] = { isOut: isNowOut, ts: Date.now() };
+          try { localStorage.setItem("empStateCache", JSON.stringify(empStateCache)); } catch (e) {}
         }
         showServerResult(res, alreadySpoken);
       } catch (err) {
@@ -769,8 +786,8 @@
       finish();
     }
 
-    /* ---------- SUPERVISOR DASHBOARD LOGIC ---------- */
-    let dashPin = sessionStorage.getItem("supervisorDashPin") || "";
+    /* ---------- SUPERVISOR DASHBOARD LOGIC (AUTO-LOCK ON CLOSE) ---------- */
+    let dashPin = "";
     let dashData = null;
     let dashFilter = "ALL";
     let dashRefreshTimer = null;
@@ -778,15 +795,12 @@
     let timeOffsetMs = 0;
 
     function openDashboardAuth() {
-      if (dashPin) {
-        openDashboardModal();
-      } else {
-        $("dashPinInput").value = "";
-        $("pinError").classList.add("d-none");
-        const modal = new bootstrap.Modal($("pinModal"));
-        modal.show();
-        setTimeout(() => $("dashPinInput").focus(), 400);
-      }
+      dashPin = "";
+      $("dashPinInput").value = "";
+      $("pinError").classList.add("d-none");
+      const modal = new bootstrap.Modal($("pinModal"));
+      modal.show();
+      setTimeout(() => $("dashPinInput").focus(), 400);
     }
 
     async function verifyDashboardPin() {
@@ -805,7 +819,6 @@
         const res = await fetchDashboardFromServer(entered);
         if (res && res.success) {
           dashPin = entered;
-          sessionStorage.setItem("supervisorDashPin", entered);
           dashData = res;
           timeOffsetMs = res.serverNowMs - Date.now();
           bootstrap.Modal.getInstance($("pinModal")).hide();
@@ -834,29 +847,26 @@
         loadDashboardData();
       }
 
-      // Auto-refresh bawat 20 seconds habang nakabukas ang dashboard
       clearInterval(dashRefreshTimer);
       dashRefreshTimer = setInterval(loadDashboardData, 20000);
 
-      // Live second-by-second countdown/elapsed update para sa On Break table
       clearInterval(dashClockTimer);
       dashClockTimer = setInterval(updateLiveTimers, 1000);
 
       modalEl.addEventListener("hidden.bs.modal", function () {
         clearInterval(dashRefreshTimer);
         clearInterval(dashClockTimer);
+        dashPin = "";
       }, { once: true });
     }
 
     function fetchDashboardFromServer(pin) {
       if (inAppsScript()) {
         return new Promise(function (resolve, reject) {
-          google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)
-            .getDashboardData(pin);
+          google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).getDashboardData(pin);
         });
       }
-      return fetch(API_URL + "?action=dashboard&pin=" + encodeURIComponent(pin))
-        .then(r => r.json());
+      return fetch(API_URL + "?action=dashboard&pin=" + encodeURIComponent(pin)).then(r => r.json());
     }
 
     async function loadDashboardData() {
@@ -872,7 +882,6 @@
           updateDashboardUI();
         } else if (res && !res.success) {
           dashPin = "";
-          sessionStorage.removeItem("supervisorDashPin");
           bootstrap.Modal.getInstance($("dashboardModal")).hide();
         }
       } catch (e) {
@@ -921,7 +930,6 @@
                (item.position && item.position.toLowerCase().indexOf(q) !== -1);
       };
 
-      // 1. Render Currently On Break
       const filteredOnBreak = dashData.onBreak.filter(matchesFilter);
       $("onBreakBadge").textContent = filteredOnBreak.length;
 
@@ -952,7 +960,6 @@
         }).join("");
       }
 
-      // 2. Render Recent Logs
       const filteredLogs = dashData.recentLogs.filter(matchesFilter);
       if (!filteredLogs.length) {
         $("recentLogsTbody").innerHTML = '<tr><td colspan="8" class="text-center text-muted py-3">No break logs found for this filter.</td></tr>';
