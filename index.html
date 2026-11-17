@@ -76,7 +76,7 @@
   <header class="top-header p-3 text-center">
     <h3 class="m-0"><i class="fa-solid fa-mobile-screen me-2"></i>PHONE QR SCANNER</h3>
     <small class="text-secondary fw-bold">Mega Prime Foods Inc. - Break Time Logger</small>
-    <div><small class="badge bg-danger">v18 Turbo Scan + Instant Name</small></div>
+    <div><small class="badge bg-danger">v19 Overbreak Voice Alert</small></div>
   </header>
 
   <div class="container py-3 my-auto">
@@ -143,7 +143,7 @@
 
   <script>
     // PALITAN ITO NG BAGONG APPS SCRIPT /exec URL MO KAPAG NAG-NEW DEPLOYMENT KA
-    const API_URL = "https://script.google.com/macros/s/AKfycbzbIIUr_iejuD6Hxd3AS7UR9VtB5KwZY6CfbvfiyepmAH4Lt9Hv75DNFvTrraIzXW7Qdw/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycby5_30Te50gyAWRbhWNZmH_uWlKtDSy_IT2R7y7SuRjec79Uh2p6ofoOtrzv7vDYDXPvw/exec";
 
     let scanner = null;
     let fileScanner = null;
@@ -153,7 +153,6 @@
     let lastId = "", lastTime = 0;
     let audioCtx = null;
 
-    // Local cache ng pangalan para instant ang paglabas sa screen sa susunod na scan
     let empCache = {};
     try { empCache = JSON.parse(localStorage.getItem("empNameCache") || "{}"); } catch (e) {}
 
@@ -241,7 +240,7 @@
           const speech = new SpeechSynthesisUtterance(text);
           speech.lang = "en-US";
           speech.volume = 1;
-          speech.rate = 1.0;
+          speech.rate = 0.98;
           speech.pitch = 1;
           window.speechSynthesis.speak(speech);
         }
@@ -249,14 +248,14 @@
     }
 
     function feedback(ok) {
-      try { if (navigator.vibrate) navigator.vibrate(ok ? 100 : [80, 60, 80]); } catch (e) {}
+      try { if (navigator.vibrate) navigator.vibrate(ok ? 100 : [120, 80, 120]); } catch (e) {}
       try {
         if (!audioCtx) return;
         const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-        o.frequency.value = ok ? 920 : 220;
-        g.gain.value = 0.15;
+        o.frequency.value = ok ? 920 : 240;
+        g.gain.value = 0.18;
         o.connect(g); g.connect(audioCtx.destination);
-        o.start(); o.stop(audioCtx.currentTime + 0.12);
+        o.start(); o.stop(audioCtx.currentTime + (ok ? 0.12 : 0.3));
       } catch (e) {}
     }
 
@@ -273,7 +272,6 @@
     let camId = "";
     try { camId = localStorage.getItem("frontCamId") || ""; } catch (e) {}
 
-    // Mas mataas na FPS at mas malawak na QR box para instant detection
     const scanConfig = {
       fps: 30,
       disableFlip: true,
@@ -471,7 +469,10 @@
     function showServerResult(res, alreadySpoken) {
       if (res && res.success) {
         const out = res.action.indexOf("BREAK OUT") !== -1;
-        let html = '<h4 class="text-success mb-2 fw-bold" style="letter-spacing: 2px;">THANK YOU!</h4>' +
+        const isOverbreak = res.remarks && res.remarks.toUpperCase().indexOf("OVERBREAK") !== -1;
+
+        let html = '<h4 class="' + (isOverbreak ? 'text-danger' : 'text-success') + ' mb-2 fw-bold" style="letter-spacing: 2px;">' +
+                   (isOverbreak ? 'OVER BREAK!' : 'THANK YOU!') + '</h4>' +
                    icon(out ? "fa-person-walking-arrow-right text-warning"
                             : "fa-person-walking-arrow-loop text-success") +
                    '<span class="text-dark fw-bold">' + esc(res.name) + '</span><br>' +
@@ -483,7 +484,12 @@
           html += '<br><span class="badge bg-danger mt-2 fs-6">' + esc(res.remarks) + "</span>";
         }
         setResult(html);
-        if (!alreadySpoken) {
+
+        // Kapag OVERBREAK: mag-warning beep at magsalita ng "Warning! Over break."
+        if (isOverbreak) {
+          feedback(false);
+          speakLoud("Warning! Over break.");
+        } else if (!alreadySpoken) {
           feedback(true);
           speakLoud("Thank you");
         }
@@ -545,7 +551,6 @@
       lastId = empId;
       lastTime = Date.now();
 
-      // INSTANT FEEDBACK: Kung kilala na sa cache ang ID, ilabas agad ang pangalan at mag-"Thank you"
       const cachedName = empCache[empId];
       let alreadySpoken = false;
 
@@ -559,14 +564,12 @@
           '<small class="text-muted">' + SPIN + 'Saving to sheet...</small>'
         );
       } else {
-        // First time ma-scan sa device na ito: agad ding mag-beep para alam ng user na nabasa na ang QR
         feedback(true);
         setResult(SPIN + "Reading ID: " + esc(empId) + "...");
       }
 
       try {
         const res = await callServer(empId);
-        // I-save sa local cache ang pangalan para sa susunod na scan ay instant na
         if (res && res.name) {
           empCache[empId] = res.name;
           try { localStorage.setItem("empNameCache", JSON.stringify(empCache)); } catch (e) {}
