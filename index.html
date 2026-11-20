@@ -3,11 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Break Time Scanner</title>
+  <title>Face Bio Break Scanner</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <!-- Camera Face Recognition Library -->
   <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/dist/face-api.js"></script>
 
@@ -43,19 +42,60 @@
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
       color: #1e293b;
     }
-    #reader {
-      width: 100%; max-width: 380px; margin: 0 auto;
-      border: 2px solid #dc2626; border-radius: 10px;
-      overflow: hidden; background: #0f172a; min-height: 250px;
+
+    /* Main Employee Face Bio Camera Frame */
+    .bio-reader-wrap {
+      position: relative;
+      width: 100%;
+      max-width: 340px;
+      height: 300px;
+      margin: 0 auto 12px auto;
+      border: 3px solid #dc2626;
+      border-radius: 16px;
+      overflow: hidden;
+      background: #0f172a;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
     }
-    #reader video { width: 100% !important; height: auto !important; }
-    #reader.mirror video { transform: scaleX(-1); }
+    #bioVideo {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    #bioVideo.mirror {
+      transform: scaleX(-1);
+    }
+    .bio-face-guide {
+      position: absolute;
+      top: 50%; left: 50%;
+      width: 190px; height: 220px;
+      transform: translate(-50%, -50%);
+      border: 3px dashed rgba(255, 255, 255, 0.75);
+      border-radius: 50%;
+      pointer-events: none;
+      box-shadow: 0 0 0 999px rgba(15, 23, 42, 0.28);
+      transition: border-color 0.2s ease;
+    }
+    .bio-badge-overlay {
+      position: absolute;
+      bottom: 10px; left: 50%;
+      transform: translateX(-50%);
+      background: rgba(15, 23, 42, 0.85);
+      color: #ffffff;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      white-space: nowrap;
+      max-width: 92%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
     #camSelect {
       background-color: #ffffff;
       color: #0f172a;
       border: 1px solid #cbd5e1;
     }
-    #file-reader { position: absolute; left: -9999px; width: 300px; height: 300px; }
     .result-box {
       font-family: 'Orbitron', sans-serif; font-size: 1.15rem;
       background: rgba(248, 250, 252, 0.95); border: 2px solid rgba(220, 38, 38, 0.35);
@@ -72,9 +112,9 @@
       box-shadow: 0 0 0 0.2rem rgba(220, 38, 38, 0.2);
     }
     .form-control::placeholder { color: #94a3b8; }
-    .btn-mobile { padding: 12px; font-size: 1.1rem; font-family: 'Orbitron', sans-serif; font-weight: 700; }
+    .btn-mobile { padding: 12px; font-size: 1.05rem; font-family: 'Orbitron', sans-serif; font-weight: 700; }
 
-    /* Face Scan Video Box */
+    /* Supervisor Face Scan Video Box */
     .face-cam-wrap {
       position: relative;
       width: 200px;
@@ -138,14 +178,14 @@
   <header class="top-header p-3">
     <div class="container d-flex justify-content-between align-items-center">
       <div class="text-start">
-        <h3 class="m-0 fs-5 fs-md-3"><i class="fa-solid fa-mobile-screen me-2"></i>PHONE QR SCANNER</h3>
+        <h3 class="m-0 fs-5 fs-md-3"><i class="fa-solid fa-face-viewfinder me-2"></i>FACE BIO SCANNER</h3>
         <small class="text-secondary fw-bold d-block">Mega Prime Foods Inc. - Break Time Logger</small>
       </div>
       <div class="text-end">
         <button class="btn btn-dark btn-sm fw-bold shadow-sm px-3 py-2" onclick="openDashboardAuth()">
-          <i class="fa-solid fa-face-viewfinder me-1 text-warning"></i>Dashboard
+          <i class="fa-solid fa-chart-pie me-1 text-warning"></i>Dashboard
         </button>
-        <div class="mt-1"><small class="badge bg-danger">v28 Multi-Face Login + Dashboard</small></div>
+        <div class="mt-1"><small class="badge bg-danger">v29 Face Biometric + Dashboard</small></div>
       </div>
     </div>
   </header>
@@ -157,29 +197,65 @@
 
           <div id="warn" class="alert alert-warning small text-start d-none"></div>
 
-          <div id="reader" class="mb-3"></div>
-          <div id="file-reader"></div>
-          <div id="camInfo" class="small text-muted fw-bold mb-2"></div>
+          <!-- Main Employee Face Biometric Camera -->
+          <div class="bio-reader-wrap" id="bioReaderWrap">
+            <video id="bioVideo" class="mirror" autoplay muted playsinline></video>
+            <div class="bio-face-guide" id="bioFaceGuide"></div>
+            <div class="bio-badge-overlay" id="bioOverlayText">Camera Off</div>
+          </div>
 
-          <button id="btnStart" class="btn btn-danger w-100 btn-mobile mb-2 shadow-sm" onclick="startCamera()">
-            <i class="fa-solid fa-camera me-2"></i>TAP TO OPEN PHONE CAMERA
+          <div id="camInfo" class="small text-muted fw-bold mb-2">
+            Enrolled Employees: <span class="text-danger" id="enrolledEmpCount">0</span>
+          </div>
+
+          <button id="btnStart" class="btn btn-danger w-100 btn-mobile mb-2 shadow-sm" onclick="startBioCamera()">
+            <i class="fa-solid fa-face-smile me-2"></i>START FACE BIO SCANNER
           </button>
           <button id="btnSwitch" class="btn btn-warning w-100 mb-2 d-none fw-bold" onclick="switchCamera()">
-            <i class="fa-solid fa-camera-rotate me-2"></i><span id="switchLabel">Switch Camera</span>
+            <i class="fa-solid fa-camera-rotate me-2"></i><span id="switchLabel">Switch to Back Camera</span>
           </button>
           <div id="camPicker" class="text-start mb-2 d-none">
             <label class="form-label small text-dark fw-bold mb-1"><i class="fa-solid fa-video me-1 text-danger"></i>Choose camera</label>
             <select id="camSelect" class="form-select" onchange="chooseCamera(this.value)"></select>
           </div>
-          <button id="btnStop" class="btn btn-outline-secondary w-100 mb-2 d-none" onclick="stopCamera()">
+          <button id="btnStop" class="btn btn-outline-secondary w-100 mb-2 d-none" onclick="stopBioCamera()">
             <i class="fa-solid fa-stop me-2"></i>Stop Camera
           </button>
 
-          <label class="btn btn-outline-dark w-100 mb-3 fw-bold bg-white">
-            <i class="fa-solid fa-image me-2 text-danger"></i>Camera not working? Take a photo of the QR
-            <input type="file" id="qrPhoto" accept="image/*" capture="user" hidden onchange="scanPhoto(this)">
-          </label>
+          <!-- Enroll / Manage Employee Face Biometric -->
+          <div class="mt-2 text-start border-top pt-3">
+            <button class="btn btn-dark w-100 fw-bold mb-2" type="button" onclick="toggleEnrollBox()">
+              <i class="fa-solid fa-user-plus me-2 text-warning"></i>Enroll / Manage Employee Face Bio
+            </button>
+            <div id="enrollBox" class="d-none p-3 border border-dark rounded bg-light mb-2">
+              <div class="small text-dark fw-bold mb-2">
+                <i class="fa-solid fa-id-badge text-danger me-1"></i>Register Employee Face (One-Time Setup)
+              </div>
+              <input type="text" id="enrollEmpId" class="form-control mb-2" placeholder="Employee ID (e.g. 001)" inputmode="numeric">
+              <input type="tel" id="enrollPin" name="enroll_pin_noconflict" autocomplete="one-time-code"
+                     class="form-control mb-2" style="-webkit-text-security: disc;"
+                     placeholder="Supervisor PIN" inputmode="numeric">
+              <div id="enrollStatus" class="small fw-bold text-primary mb-2 d-none"></div>
+              <div class="d-grid gap-2">
+                <button class="btn btn-danger fw-bold" id="btnCaptureEmpFace" type="button" onclick="enrollEmployeeFace()">
+                  <i class="fa-solid fa-camera me-1"></i>Capture & Save Employee Face
+                </button>
+              </div>
 
+              <!-- Enrolled Employees List -->
+              <div id="enrolledListWrap" class="mt-3 pt-2 border-top d-none">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <span class="small fw-bold text-dark">Enrolled Faces (<span id="enrolledListCount">0</span>)</span>
+                  <button type="button" class="btn btn-link btn-sm text-danger p-0 fw-bold text-decoration-none" onclick="deleteAllEmployeeFaces()">
+                    Clear All (PIN)
+                  </button>
+                </div>
+                <div id="enrolledEmpList" class="list-group list-group-flush small" style="max-height: 150px; overflow-y: auto;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Manual Employee ID Backup -->
           <div class="mt-2 text-start border-top pt-3">
             <label class="form-label small text-dark fw-bold"><i class="fa-solid fa-keyboard me-1 text-danger"></i>Manual Employee ID Backup</label>
             <div class="input-group">
@@ -208,13 +284,13 @@
             </div>
           </div>
 
-          <div id="result" class="result-box"><i class="fa-solid fa-hand-pointer me-2 text-danger"></i>Tap the red button above to start your phone camera.</div>
+          <div id="result" class="result-box"><i class="fa-solid fa-hand-pointer me-2 text-danger"></i>Tap the red button above to start Face Biometric scanning.</div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Camera Face Recognition + PIN Prompt Modal -->
+  <!-- Supervisor Camera Face Recognition + PIN Prompt Modal -->
   <div class="modal fade" id="pinModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
       <div class="modal-content border-danger shadow-lg">
@@ -223,7 +299,6 @@
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body text-center p-3">
-          <!-- Camera Face Scan View -->
           <div id="faceCameraSection" class="d-none mb-2">
             <div class="face-cam-wrap" id="faceCamWrap">
               <video id="faceVideo" autoplay muted playsinline></video>
@@ -251,15 +326,14 @@
                   <i class="fa-solid fa-unlock me-1"></i>Open with PIN
                 </button>
                 <button class="btn btn-dark fw-bold" id="btnRegisterFace" onclick="startFaceRegistration()">
-                  <i class="fa-solid fa-user-plus me-1 text-warning"></i>Add / Register Face via Camera
+                  <i class="fa-solid fa-user-plus me-1 text-warning"></i>Add / Register Supervisor Face
                 </button>
               </div>
             </div>
 
-            <!-- Registered Faces List (Protected Delete) -->
             <div id="registeredFacesBox" class="mt-3 pt-2 border-top text-start mx-auto d-none" style="max-width: 310px;">
               <div class="d-flex justify-content-between align-items-center mb-1">
-                <span class="small fw-bold text-dark"><i class="fa-solid fa-users-viewfinder me-1 text-danger"></i>Registered Faces (<span id="faceCountBadge">0</span>)</span>
+                <span class="small fw-bold text-dark"><i class="fa-solid fa-users-viewfinder me-1 text-danger"></i>Supervisor Faces (<span id="faceCountBadge">0</span>)</span>
                 <button class="btn btn-link btn-sm text-danger p-0 text-decoration-none fw-bold" onclick="removeAllFaces()">
                   Remove All (PIN)
                 </button>
@@ -391,13 +465,14 @@
 
   <script>
     // PALITAN ITO NG BAGONG APPS SCRIPT /exec URL MO KAPAG NAG-NEW DEPLOYMENT KA
-    const API_URL = "https://script.google.com/macros/s/AKfycbwEJc9MxSZpB9kEIu0uiDgMp9_ruKAS3SXmuERQIhC8bLSMdOUkkabHgB1LC7IWeXKyzw/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycbw7QN0kPhzioUb7BZR6ly4U0FETekEXHl3NrGBo7ngQy4Z3ITYiiqrV3iqaKhcJ9trVVQ/exec";
 
-    let scanner = null;
-    let fileScanner = null;
     let busy = false, cameraOn = false, restartOnReturn = false;
+    let bioStream = null, bioLoopActive = false, isEnrollingNow = false;
     let facing = "user";
-    try { localStorage.removeItem("facing"); localStorage.removeItem("camId"); } catch (e) {}
+    let camId = "";
+    try { camId = localStorage.getItem("frontCamId") || ""; } catch (e) {}
+
     let lastId = "", lastTime = 0;
     let audioCtx = null;
 
@@ -423,6 +498,7 @@
         if (res && res.success && res.employees) {
           empCache = Object.assign(empCache, res.employees);
           try { localStorage.setItem("empNameCache", JSON.stringify(empCache)); } catch (e) {}
+          renderEnrolledEmployees();
         }
       };
       if (inAppsScript()) {
@@ -448,22 +524,23 @@
 
     window.addEventListener("load", function () {
       preloadEmployees();
-      setTimeout(() => { loadFaceModels().catch(() => {}); }, 1200);
+      renderEnrolledEmployees();
+      setTimeout(() => { loadFaceModels().catch(() => {}); }, 800);
 
       const ua = navigator.userAgent || "";
       const warn = [];
       if (!inAppsScript() && API_URL.indexOf("PASTE_YOUR_ID_HERE") !== -1) {
         warn.push("Setup needed: put your Apps Script <b>/exec</b> URL in <b>API_URL</b> inside index.html.");
       }
-      if (typeof Html5Qrcode === "undefined") {
-        warn.push("Scanner library failed to load. Check your internet connection and reload.");
+      if (typeof faceapi === "undefined") {
+        warn.push("Face Biometric AI library failed to load. Check your internet connection and reload.");
       }
       if (/FBAN|FBAV|FB_IAB|Messenger|Instagram|Line\/|TikTok/i.test(ua)) {
         warn.push("You opened this inside Messenger/Facebook, which blocks the camera. " +
                   "Tap the <b>&#8942;</b> or <b>&hellip;</b> menu and choose <b>Open in Chrome</b> (Android) or <b>Open in Safari</b> (iPhone).");
       }
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        warn.push("This browser can't open a live camera. Use the <b>Take a photo of the QR</b> button instead.");
+        warn.push("This browser can't open a live camera. Use Chrome or Safari.");
       }
       if (warn.length) {
         $("warn").innerHTML = warn.join("<br><br>");
@@ -481,7 +558,7 @@
         return "Camera is being used by another app. Close other camera apps and try again.";
       if (/secure|https/i.test(text))
         return "Camera needs a secure (https) page.";
-      return "Could not start camera (" + text + "). Use the photo button below instead.";
+      return "Could not start camera (" + text + ").";
     }
 
     function unlockAudio() {
@@ -522,58 +599,258 @@
       } catch (e) {}
     }
 
-    function newScanner() {
-      try { if (scanner) scanner.clear(); } catch (e) {}
-      scanner = new Html5Qrcode("reader", {
-        formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
-        experimentalFeatures: { useBarCodeDetectorIfSupported: true },
-        verbose: false
+    /* ---------- FACE AI MODELS LOADER ---------- */
+    const FACE_MODEL_URL = "https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/model";
+    let faceModelsReady = false;
+    let faceModelsLoadingPromise = null;
+
+    function loadFaceModels() {
+      if (faceModelsReady) return Promise.resolve(true);
+      if (faceModelsLoadingPromise) return faceModelsLoadingPromise;
+      if (typeof faceapi === "undefined") return Promise.resolve(false);
+
+      faceModelsLoadingPromise = Promise.all([
+        faceapi.nets.tinyFaceDetector.loadFromUri(FACE_MODEL_URL),
+        faceapi.nets.faceLandmark68TinyNet.loadFromUri(FACE_MODEL_URL),
+        faceapi.nets.faceRecognitionNet.loadFromUri(FACE_MODEL_URL)
+      ]).then(() => {
+        faceModelsReady = true;
+        return true;
+      }).catch(err => {
+        faceModelsLoadingPromise = null;
+        throw err;
       });
+      return faceModelsLoadingPromise;
     }
 
-    let camId = "";
-    try { camId = localStorage.getItem("frontCamId") || ""; } catch (e) {}
-
-    const scanConfig = {
-      fps: 30,
-      disableFlip: true,
-      qrbox: (w, h) => { const s = Math.floor(Math.min(w, h) * 0.88); return { width: s, height: s }; }
-    };
-    const onScan = text => processEmployeeId(text, true);
-
-    async function tryStart(source) {
-      newScanner();
-      await scanner.start(source, scanConfig, onScan, () => {});
+    /* ---------- EMPLOYEE FACE BIOMETRIC STORAGE & ENROLLMENT ---------- */
+    function getEnrolledEmployees() {
+      try {
+        const raw = localStorage.getItem("empFaceBioList");
+        const arr = raw ? JSON.parse(raw) : [];
+        return Array.isArray(arr) ? arr : [];
+      } catch (e) { return []; }
     }
 
-    async function startCamera() {
-      unlockAudio();
-      if (typeof Html5Qrcode === "undefined") {
-        return setResult(ERR + "Scanner library not loaded. Reload the page.");
+    function saveEnrolledEmployees(list) {
+      localStorage.setItem("empFaceBioList", JSON.stringify(list));
+      renderEnrolledEmployees();
+    }
+
+    function renderEnrolledEmployees() {
+      const list = getEnrolledEmployees();
+      $("enrolledEmpCount").textContent = list.length;
+      $("enrolledListCount").textContent = list.length;
+
+      const wrap = $("enrolledListWrap");
+      const listEl = $("enrolledEmpList");
+      if (!list.length) {
+        wrap.classList.add("d-none");
+        listEl.innerHTML = "";
+        return;
       }
-      setResult(SPIN + "Starting camera...");
+
+      wrap.classList.remove("d-none");
+      listEl.innerHTML = list.map(emp =>
+        '<div class="list-group-item px-1 py-1 d-flex justify-content-between align-items-center bg-transparent">' +
+          '<span><strong class="text-danger">' + esc(emp.id) + '</strong> - ' + esc(emp.name) + '</span>' +
+          '<button type="button" class="btn btn-outline-danger btn-sm py-0 px-2" onclick="deleteSingleEmployeeFace(\'' + esc(emp.id) + '\')" title="Requires PIN">' +
+            '<i class="fa-solid fa-trash-can"></i>' +
+          '</button>' +
+        '</div>'
+      ).join("");
+    }
+
+    function toggleEnrollBox() {
+      $("enrollBox").classList.toggle("d-none");
+      renderEnrolledEmployees();
+    }
+
+    async function enrollEmployeeFace() {
+      unlockAudio();
+      const empId = $("enrollEmpId").value.trim();
+      const pin = $("enrollPin").value.trim();
+      const statusEl = $("enrollStatus");
+
+      if (!empId || !pin) {
+        statusEl.className = "small fw-bold text-danger mb-2";
+        statusEl.textContent = "Ilagay ang Employee ID at Supervisor PIN bago mag-capture.";
+        statusEl.classList.remove("d-none");
+        return;
+      }
+
+      $("btnCaptureEmpFace").disabled = true;
+      isEnrollingNow = true;
+      statusEl.className = "small fw-bold text-primary mb-2";
+      statusEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i>Verifying Supervisor PIN & Employee ID...';
+      statusEl.classList.remove("d-none");
+
+      try {
+        // 1. Verify PIN via dashboard endpoint at kunin ang employee directory
+        const [dashRes, loaded] = await Promise.all([
+          fetchDashboardFromServer(pin),
+          loadFaceModels()
+        ]);
+
+        if (!dashRes || !dashRes.success) {
+          statusEl.className = "small fw-bold text-danger mb-2";
+          statusEl.textContent = (dashRes && dashRes.message) || "Maling Supervisor PIN.";
+          return;
+        }
+        if (!loaded) throw new Error("Face AI library failed to load.");
+
+        // 2. Siguraduhing nakabukas ang front camera
+        if (!cameraOn) {
+          facing = "user";
+          camId = "";
+          await startBioCamera(true);
+        }
+
+        const empName = empCache[empId] || ("Employee " + empId);
+        statusEl.innerHTML = '<i class="fa-solid fa-face-smile me-1 text-warning"></i>Itapat ang mukha ni <b>' + esc(empName) + '</b> sa bilog...';
+        $("bioOverlayText").textContent = "Enrolling: " + empName;
+        $("bioFaceGuide").style.borderColor = "#f59e0b";
+
+        const vid = $("bioVideo");
+        const opts = new faceapi.TinyFaceDetectorOptions({ inputSize: 160, scoreThreshold: 0.35 });
+
+        let attempts = 0;
+        let captured = false;
+
+        while (attempts < 55) {
+          attempts++;
+          const det = await faceapi.detectSingleFace(vid, opts).withFaceLandmarks(true).withFaceDescriptor();
+          if (det && det.descriptor) {
+            const list = getEnrolledEmployees().filter(e => e.id !== empId);
+            list.push({
+              id: empId,
+              name: empName,
+              descriptor: Array.from(det.descriptor)
+            });
+            saveEnrolledEmployees(list);
+
+            $("bioFaceGuide").style.borderColor = "#16a34a";
+            $("bioOverlayText").textContent = "Enrolled: " + empName;
+            statusEl.className = "small fw-bold text-success mb-2";
+            statusEl.innerHTML = '<i class="fa-solid fa-circle-check me-1"></i>Na-save na ang Face Bio ni <b>' + esc(empName) + ' (' + esc(empId) + ')</b>!';
+            feedback(true);
+            speakLoud("Enrolled");
+
+            $("enrollEmpId").value = "";
+            captured = true;
+            break;
+          }
+          await new Promise(r => setTimeout(r, 120));
+        }
+
+        if (!captured) {
+          $("bioFaceGuide").style.borderColor = "#dc2626";
+          statusEl.className = "small fw-bold text-danger mb-2";
+          statusEl.textContent = "Walang nakitang mukha. Siguraduhing maliwanag at subukan ulit.";
+        }
+      } catch (e) {
+        statusEl.className = "small fw-bold text-danger mb-2";
+        statusEl.textContent = "Error: " + (e.message || "Check camera/internet.");
+      } finally {
+        $("btnCaptureEmpFace").disabled = false;
+        isEnrollingNow = false;
+        setTimeout(() => {
+          if (cameraOn && !isEnrollingNow) {
+            $("bioFaceGuide").style.borderColor = "rgba(255,255,255,0.75)";
+            $("bioOverlayText").textContent = "Ready - Look at Camera";
+          }
+        }, 1500);
+      }
+    }
+
+    async function deleteSingleEmployeeFace(empId) {
+      const pin = $("enrollPin").value.trim();
+      const statusEl = $("enrollStatus");
+      if (!pin) {
+        statusEl.className = "small fw-bold text-danger mb-2";
+        statusEl.textContent = "I-type muna ang Supervisor PIN sa itaas bago mag-delete ng Employee Face.";
+        statusEl.classList.remove("d-none");
+        $("enrollPin").focus();
+        return;
+      }
+
+      try {
+        const res = await fetchDashboardFromServer(pin);
+        if (!res || !res.success) {
+          statusEl.className = "small fw-bold text-danger mb-2";
+          statusEl.textContent = "Maling Supervisor PIN. Hindi mabubura ang record.";
+          statusEl.classList.remove("d-none");
+          return;
+        }
+        const updated = getEnrolledEmployees().filter(e => e.id !== empId);
+        saveEnrolledEmployees(updated);
+        statusEl.className = "small fw-bold text-success mb-2";
+        statusEl.textContent = "Nabura na ang Face Bio ng ID " + empId + ".";
+        statusEl.classList.remove("d-none");
+        feedback(true);
+      } catch (e) {
+        statusEl.className = "small fw-bold text-danger mb-2";
+        statusEl.textContent = "Connection error. Check internet.";
+        statusEl.classList.remove("d-none");
+      }
+    }
+
+    async function deleteAllEmployeeFaces() {
+      const pin = $("enrollPin").value.trim();
+      const statusEl = $("enrollStatus");
+      if (!pin) {
+        statusEl.className = "small fw-bold text-danger mb-2";
+        statusEl.textContent = "I-type muna ang Supervisor PIN sa itaas bago burahin lahat.";
+        statusEl.classList.remove("d-none");
+        $("enrollPin").focus();
+        return;
+      }
+
+      try {
+        const res = await fetchDashboardFromServer(pin);
+        if (!res || !res.success) {
+          statusEl.className = "small fw-bold text-danger mb-2";
+          statusEl.textContent = "Maling Supervisor PIN.";
+          statusEl.classList.remove("d-none");
+          return;
+        }
+        saveEnrolledEmployees([]);
+        statusEl.className = "small fw-bold text-success mb-2";
+        statusEl.textContent = "Nabura na lahat ng enrolled employee faces.";
+        statusEl.classList.remove("d-none");
+        feedback(true);
+      } catch (e) {
+        statusEl.className = "small fw-bold text-danger mb-2";
+        statusEl.textContent = "Connection error.";
+        statusEl.classList.remove("d-none");
+      }
+    }
+
+    /* ---------- MAIN LIVE FACE BIOMETRIC SCANNER ---------- */
+    async function startBioCamera(skipEmptyCheck) {
+      unlockAudio();
+      const enrolled = getEnrolledEmployees();
+      if (!enrolled.length && !skipEmptyCheck) {
+        $("enrollBox").classList.remove("d-none");
+        setResult(ERR + "Wala pang naka-enroll na empleyado. Gamitin muna ang <b>Enroll / Manage Employee Face Bio</b> sa ibaba.");
+        return;
+      }
+
+      setResult(SPIN + "Starting Face Biometric camera...");
       $("btnStart").disabled = true;
 
       try {
-        let started = false, lastErr = null;
-        if (camId) {
-          try { await tryStart(camId); started = true; } catch (e) { lastErr = e; camId = ""; }
-        }
-        if (!started) {
-          try { await tryStart({ facingMode: { exact: facing } }); started = true; } catch (e) { lastErr = e; }
-        }
-        if (!started) {
-          try { await tryStart({ facingMode: facing }); started = true; } catch (e) { lastErr = e; }
-        }
-        if (!started) {
-          const cams = await Html5Qrcode.getCameras();
-          if (!cams || !cams.length) throw lastErr || new Error("NotFoundError");
-          const want = facing === "user" ? /front|user|face|selfie/i : /back|rear|environment/i;
-          const pick = cams.find(c => want.test(c.label)) || (facing === "user" ? cams[0] : cams[cams.length - 1]);
-          await tryStart(pick.id);
-        }
+        const loaded = await loadFaceModels();
+        if (!loaded) throw new Error("Face AI library failed to load.");
 
-        if (facing === "user" && !camId) await ensureFront();
+        const constraints = camId
+          ? { video: { deviceId: { exact: camId }, width: { ideal: 320 }, height: { ideal: 320 } }, audio: false }
+          : { video: { facingMode: facing, width: { ideal: 320 }, height: { ideal: 320 } }, audio: false };
+
+        bioStream = await navigator.mediaDevices.getUserMedia(constraints);
+        const vid = $("bioVideo");
+        vid.srcObject = bioStream;
+        await vid.play();
 
         cameraOn = true;
         $("btnStart").classList.add("d-none");
@@ -581,7 +858,11 @@
         $("btnSwitch").classList.remove("d-none");
         await fillCameraList();
         updateCameraUi();
-        setResult(icon("fa-qrcode text-danger") + "Point the camera at the Employee QR code");
+
+        $("bioOverlayText").textContent = "Ready - Look at Camera";
+        setResult(icon("fa-face-viewfinder text-danger") + "Itapat ang mukha sa camera para mag-Break Out / Break In");
+
+        startBioRecognitionLoop();
       } catch (err) {
         cameraOn = false;
         setResult(ERR + esc(cameraErrorMessage(err)));
@@ -590,27 +871,69 @@
       }
     }
 
-    async function ensureFront() {
-      let actual = "", currentId = "";
-      try {
-        const t = scanner.getRunningTrackSettings();
-        actual = t.facingMode || "";
-        currentId = t.deviceId || "";
-      } catch (e) {}
-      if (actual === "user") return;
+    async function startBioRecognitionLoop() {
+      bioLoopActive = true;
+      const vid = $("bioVideo");
+      const opts = new faceapi.TinyFaceDetectorOptions({ inputSize: 160, scoreThreshold: 0.35 });
 
-      let cams = [];
-      try { cams = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === "videoinput"); } catch (e) { return; }
-      if (cams.length < 2) return;
+      while (bioLoopActive && cameraOn) {
+        if (!isEnrollingNow && !busy && vid.readyState >= 2) {
+          const enrolled = getEnrolledEmployees();
+          if (enrolled.length > 0) {
+            try {
+              const det = await faceapi.detectSingleFace(vid, opts).withFaceLandmarks(true).withFaceDescriptor();
+              if (det && det.descriptor) {
+                let bestEmp = null;
+                let bestDist = 999;
 
-      const labeledFront = cams.find(d => /front|user|face|selfie/i.test(d.label));
-      let target = null;
-      if (labeledFront && labeledFront.deviceId !== currentId) target = labeledFront;
-      else if (actual === "environment") target = cams.find(d => d.deviceId !== currentId);
-      if (!target) return;
+                for (let i = 0; i < enrolled.length; i++) {
+                  const dist = faceapi.euclideanDistance(new Float32Array(enrolled[i].descriptor), det.descriptor);
+                  if (dist < bestDist) {
+                    bestDist = dist;
+                    bestEmp = enrolled[i];
+                  }
+                }
 
-      try { await scanner.stop(); } catch (e) {}
-      try { await tryStart(target.deviceId); } catch (e) { await tryStart({ facingMode: "user" }); }
+                if (bestEmp && bestDist < 0.58) {
+                  $("bioFaceGuide").style.borderColor = "#16a34a";
+                  $("bioOverlayText").textContent = "Matched: " + bestEmp.name + " (" + bestEmp.id + ")";
+                  await processEmployeeId(bestEmp.id, true);
+                  setTimeout(() => {
+                    if (cameraOn && !isEnrollingNow) {
+                      $("bioFaceGuide").style.borderColor = "rgba(255,255,255,0.75)";
+                      $("bioOverlayText").textContent = "Ready - Look at Camera";
+                    }
+                  }, 2000);
+                } else {
+                  $("bioFaceGuide").style.borderColor = "#f59e0b";
+                  $("bioOverlayText").textContent = "Unrecognized Face (" + Math.max(0, Math.round((1 - bestDist) * 100)) + "%)";
+                }
+              } else {
+                $("bioFaceGuide").style.borderColor = "rgba(255,255,255,0.75)";
+                $("bioOverlayText").textContent = "Ready - Look at Camera";
+              }
+            } catch (e) {}
+          }
+        }
+        await new Promise(r => setTimeout(r, 150));
+      }
+    }
+
+    async function stopBioCamera() {
+      bioLoopActive = false;
+      if (bioStream) {
+        bioStream.getTracks().forEach(t => t.stop());
+        bioStream = null;
+      }
+      const vid = $("bioVideo");
+      if (vid) vid.srcObject = null;
+      cameraOn = false;
+      $("bioOverlayText").textContent = "Camera Off";
+      $("bioFaceGuide").style.borderColor = "rgba(255,255,255,0.75)";
+      $("btnStop").classList.add("d-none");
+      $("btnSwitch").classList.add("d-none");
+      $("camPicker").classList.add("d-none");
+      $("btnStart").classList.remove("d-none");
     }
 
     async function fillCameraList() {
@@ -622,7 +945,10 @@
           return '<option value="' + esc(c.deviceId) + '">' + esc(c.label || ("Camera " + (i + 1))) + '</option>';
         }).join("");
         let current = "";
-        try { current = scanner.getRunningTrackSettings().deviceId || ""; } catch (e) {}
+        try {
+          const track = bioStream && bioStream.getVideoTracks()[0];
+          current = (track && track.getSettings().deviceId) || "";
+        } catch (e) {}
         if (current) sel.value = current;
         $("camPicker").classList.toggle("d-none", cams.length < 1);
       } catch (e) {}
@@ -632,78 +958,37 @@
       if (!id) return;
       camId = id;
       try { localStorage.setItem("frontCamId", id); } catch (e) {}
-      await stopCamera();
-      startCamera();
-    }
-
-    async function stopCamera() {
-      if (scanner && cameraOn) { try { await scanner.stop(); } catch (e) {} }
-      cameraOn = false;
-      $("btnStop").classList.add("d-none");
-      $("btnSwitch").classList.add("d-none");
-      $("camPicker").classList.add("d-none");
-      $("camInfo").textContent = "";
-      $("btnStart").classList.remove("d-none");
+      await stopBioCamera();
+      startBioCamera(true);
     }
 
     function updateCameraUi() {
       let actual = "";
-      try { actual = scanner.getRunningTrackSettings().facingMode || ""; } catch (e) {}
-      const isFront = actual ? actual === "user" : facing === "user";
-      $("reader").classList.toggle("mirror", isFront);
-      $("switchLabel").textContent = isFront ? "Switch to Back Camera" : "Switch to Front Camera";
-      $("qrPhoto").setAttribute("capture", isFront ? "user" : "environment");
-
-      let label = "";
       try {
-        const id = scanner.getRunningTrackSettings().deviceId;
-        const opt = Array.from($("camSelect").options).find(o => o.value === id);
-        label = opt ? opt.textContent : "";
+        const track = bioStream && bioStream.getVideoTracks()[0];
+        actual = (track && track.getSettings().facingMode) || "";
       } catch (e) {}
-      $("camInfo").textContent = "Camera: " + (label || "unknown") + " | facing: " + (actual || "not reported");
+      const isFront = actual ? actual === "user" : facing === "user";
+      $("bioVideo").classList.toggle("mirror", isFront);
+      $("switchLabel").textContent = isFront ? "Switch to Back Camera" : "Switch to Front Camera";
     }
 
     async function switchCamera() {
-      let actual = "";
-      try { actual = scanner.getRunningTrackSettings().facingMode || ""; } catch (e) {}
-      const isFront = actual ? actual === "user" : facing === "user";
-      facing = isFront ? "environment" : "user";
+      facing = facing === "user" ? "environment" : "user";
       camId = "";
-      await stopCamera();
-      startCamera();
+      await stopBioCamera();
+      startBioCamera(true);
     }
 
     document.addEventListener("visibilitychange", async function () {
       if (document.hidden && cameraOn) {
         restartOnReturn = true;
-        await stopCamera();
+        await stopBioCamera();
       } else if (!document.hidden && restartOnReturn) {
         restartOnReturn = false;
-        startCamera();
+        startBioCamera(true);
       }
     });
-
-    async function scanPhoto(input) {
-      unlockAudio();
-      const file = input.files && input.files[0];
-      input.value = "";
-      if (!file) return;
-      setResult(SPIN + "Reading QR code from photo...");
-      try {
-        if (!fileScanner) {
-          fileScanner = new Html5Qrcode("file-reader", {
-            formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
-            experimentalFeatures: { useBarCodeDetectorIfSupported: true },
-            verbose: false
-          });
-        }
-        const text = await fileScanner.scanFile(file, false);
-        processEmployeeId(text, false);
-      } catch (e) {
-        feedback(false);
-        setResult(ERR + "No QR code found in the photo. Hold steady, fill the frame with the QR code, and try again.");
-      }
-    }
 
     function submitManualId() {
       unlockAudio();
@@ -856,7 +1141,7 @@
       finish();
     }
 
-    /* ---------- MULTI-USER FACE RECOGNITION + SUPERVISOR DASHBOARD ---------- */
+    /* ---------- MULTI-SUPERVISOR FACE LOGIN + DASHBOARD ---------- */
     let dashPin = "";
     let dashData = null;
     let dashFilter = "ALL";
@@ -864,13 +1149,9 @@
     let dashClockTimer = null;
     let timeOffsetMs = 0;
 
-    const FACE_MODEL_URL = "https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/model";
-    let faceModelsReady = false;
-    let faceModelsLoadingPromise = null;
     let faceStream = null;
     let faceLoopActive = false;
 
-    // Kunin ang listahan ng lahat ng naka-save na mukha (with backward compatibility kung may luma)
     function getSavedFaceProfiles() {
       let list = [];
       try {
@@ -878,7 +1159,6 @@
         if (raw) list = JSON.parse(raw);
       } catch (e) {}
 
-      // Migrate single face kung meron pa sa lumang storage key
       try {
         const oldDesc = localStorage.getItem("supFaceDescriptor");
         const oldPin = localStorage.getItem("supFacePin");
@@ -926,25 +1206,6 @@
       ).join("");
     }
 
-    function loadFaceModels() {
-      if (faceModelsReady) return Promise.resolve(true);
-      if (faceModelsLoadingPromise) return faceModelsLoadingPromise;
-      if (typeof faceapi === "undefined") return Promise.resolve(false);
-
-      faceModelsLoadingPromise = Promise.all([
-        faceapi.nets.tinyFaceDetector.loadFromUri(FACE_MODEL_URL),
-        faceapi.nets.faceLandmark68TinyNet.loadFromUri(FACE_MODEL_URL),
-        faceapi.nets.faceRecognitionNet.loadFromUri(FACE_MODEL_URL)
-      ]).then(() => {
-        faceModelsReady = true;
-        return true;
-      }).catch(err => {
-        faceModelsLoadingPromise = null;
-        throw err;
-      });
-      return faceModelsLoadingPromise;
-    }
-
     function stopFaceCamera() {
       faceLoopActive = false;
       if (faceStream) {
@@ -968,7 +1229,7 @@
     async function openDashboardAuth() {
       if (cameraOn) {
         restartOnReturn = true;
-        await stopCamera();
+        await stopBioCamera();
       }
 
       dashPin = "";
@@ -987,13 +1248,13 @@
         stopFaceCamera();
         if (restartOnReturn && !dashPin) {
           restartOnReturn = false;
-          startCamera();
+          startBioCamera(true);
         }
       }, { once: true });
 
       if (profiles.length > 0) {
         $("faceCameraSection").classList.remove("d-none");
-        $("pinPromptLabel").textContent = "Look at camera to unlock — or enter PIN to open / add another face";
+        $("pinPromptLabel").textContent = "Look at camera to unlock — or enter PIN to open / add supervisor";
         startFaceVerification(profiles);
       } else {
         $("faceCameraSection").classList.add("d-none");
@@ -1002,7 +1263,6 @@
       }
     }
 
-    // 1. Add / Register New Supervisor Face
     async function startFaceRegistration() {
       const entered = $("dashPinInput").value.trim();
       if (!entered) {
@@ -1012,7 +1272,6 @@
         return;
       }
 
-      // Stop muna kung tumatakbo ang verification loop
       stopFaceCamera();
 
       const existing = getSavedFaceProfiles();
@@ -1093,7 +1352,6 @@
       }
     }
 
-    // 2. Verify Against ALL Registered Faces
     async function startFaceVerification(profiles) {
       $("faceCamWrap").style.borderColor = "#dc2626";
       $("faceStatusText").className = "fw-bold text-primary small mb-2";
@@ -1179,7 +1437,6 @@
       }
     }
 
-    // 3. Remove Single Face (Requires Supervisor PIN)
     async function removeSingleFace(faceId) {
       const entered = $("dashPinInput").value.trim();
       if (!entered) {
@@ -1215,7 +1472,6 @@
       }
     }
 
-    // 4. Remove ALL Faces (Requires Supervisor PIN)
     async function removeAllFaces() {
       const entered = $("dashPinInput").value.trim();
       if (!entered) {
@@ -1305,7 +1561,7 @@
         dashPin = "";
         if (restartOnReturn) {
           restartOnReturn = false;
-          startCamera();
+          startBioCamera(true);
         }
       }, { once: true });
     }
