@@ -122,9 +122,9 @@
       </div>
       <div class="text-end">
         <button class="btn btn-dark btn-sm fw-bold shadow-sm px-3 py-2" onclick="openDashboardAuth()">
-          <i class="fa-solid fa-chart-line me-1 text-warning"></i>Dashboard
+          <i class="fa-solid fa-face-smile me-1 text-warning"></i>Dashboard
         </button>
-        <div class="mt-1"><small class="badge bg-danger">v22 Full-Screen Dashboard</small></div>
+        <div class="mt-1"><small class="badge bg-danger">v23 Face ID + Full Dashboard</small></div>
       </div>
     </div>
   </header>
@@ -193,22 +193,39 @@
     </div>
   </div>
 
-  <!-- PIN Prompt Modal -->
+  <!-- Biometric + PIN Prompt Modal -->
   <div class="modal fade" id="pinModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-sm">
-      <div class="modal-content border-danger">
+      <div class="modal-content border-danger shadow-lg">
         <div class="modal-header bg-danger text-white py-2">
-          <h6 class="modal-title orbitron mb-0"><i class="fa-solid fa-lock me-2"></i>SUPERVISOR PIN</h6>
+          <h6 class="modal-title orbitron mb-0"><i class="fa-solid fa-shield-halved me-2"></i>SUPERVISOR AUTH</h6>
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
         </div>
-        <div class="modal-body text-center">
-          <p class="small text-muted mb-2">Enter Supervisor PIN to view Break Dashboard</p>
+        <div class="modal-body text-center p-3">
+          <!-- Face ID / Fingerprint Button (lalabas kapag naka-register na ang device) -->
+          <div id="bioLoginSection" class="d-none mb-3">
+            <button class="btn btn-dark w-100 py-3 fw-bold shadow-sm mb-2" id="btnBioLogin" onclick="authenticateBiometric()">
+              <i class="fa-solid fa-face-smile fa-lg text-warning me-2"></i>Unlock with Face ID / Fingerprint
+            </button>
+            <div class="small text-muted">— or use backup PIN —</div>
+          </div>
+
+          <p class="small text-muted mb-2" id="pinPromptLabel">Enter Supervisor PIN to access Dashboard</p>
           <input type="tel" id="dashPinInput" name="dash_pin_noconflict" autocomplete="one-time-code"
                  class="form-control text-center fs-5 fw-bold mb-2" style="-webkit-text-security: disc;"
                  placeholder="••••" inputmode="numeric" onkeydown="if(event.key==='Enter') verifyDashboardPin()">
           <div id="pinError" class="text-danger small fw-bold mb-2 d-none"></div>
-          <button class="btn btn-danger w-100 fw-bold" id="btnUnlockDash" onclick="verifyDashboardPin()">
-            <i class="fa-solid fa-unlock me-1"></i>Open Dashboard
+
+          <button class="btn btn-danger w-100 fw-bold mb-2" id="btnUnlockDash" onclick="verifyDashboardPin()">
+            <i class="fa-solid fa-unlock me-1"></i>Open with PIN
+          </button>
+
+          <!-- One-time Biometric Registration Button -->
+          <button class="btn btn-outline-dark btn-sm w-100 fw-bold mt-1 d-none" id="btnRegisterBio" onclick="registerBiometric()">
+            <i class="fa-solid fa-fingerprint me-1 text-primary"></i>Register Face ID / Fingerprint
+          </button>
+          <button class="btn btn-link btn-sm text-danger text-decoration-none w-100 mt-1 d-none" id="btnResetBio" onclick="resetBiometric()">
+            <i class="fa-solid fa-trash-can me-1"></i>Remove Saved Face ID
           </button>
         </div>
       </div>
@@ -338,7 +355,7 @@
 
   <script>
     // PALITAN ITO NG BAGONG APPS SCRIPT /exec URL MO KAPAG NAG-NEW DEPLOYMENT KA
-    const API_URL = "https://script.google.com/macros/s/AKfycby5MiuVoNSFcf2N5pExN5httCGQsHBnEBthxvhqcOLBJ5lztU0wSHrXf1fSkhDx_ItR0Q/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycby5_30Te50gyAWRbhWNZmH_uWlKtDSy_IT2R7y7SuRjec79Uh2p6ofoOtrzv7vDYDXPvw/exec";
 
     let scanner = null;
     let fileScanner = null;
@@ -734,7 +751,6 @@
       }
     }
 
-    // ZERO-DELAY PREDICTIVE DISPLAY + BACKGROUND SYNC
     async function processEmployeeId(empId, fromCamera) {
       empId = String(empId).trim();
       if (!empId || busy) return;
@@ -802,7 +818,7 @@
       finish();
     }
 
-    /* ---------- SUPERVISOR DASHBOARD LOGIC (AUTO-LOCK ON CLOSE) ---------- */
+    /* ---------- SUPERVISOR DASHBOARD + FACE ID / FINGERPRINT (WEBAUTHN) ---------- */
     let dashPin = "";
     let dashData = null;
     let dashFilter = "ALL";
@@ -810,13 +826,174 @@
     let dashClockTimer = null;
     let timeOffsetMs = 0;
 
+    function bufToB64(buf) {
+      return btoa(String.fromCharCode(...new Uint8Array(buf)));
+    }
+    function b64ToBuf(b64) {
+      const bin = atob(b64);
+      const arr = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+      return arr.buffer;
+    }
+
+    function hasBiometricSupport() {
+      return window.PublicKeyCredential && typeof navigator.credentials !== "undefined";
+    }
+
     function openDashboardAuth() {
       dashPin = "";
       $("dashPinInput").value = "";
       $("pinError").classList.add("d-none");
+
+      const savedCredId = localStorage.getItem("supBioCredId");
+      const savedBioPin = localStorage.getItem("supBioPin");
+      const bioAvailable = hasBiometricSupport();
+
+      if (bioAvailable && savedCredId && savedBioPin) {
+        $("bioLoginSection").classList.remove("d-none");
+        $("btnRegisterBio").classList.add("d-none");
+        $("btnResetBio").classList.remove("d-none");
+      } else {
+        $("bioLoginSection").classList.add("d-none");
+        $("btnResetBio").classList.add("d-none");
+        if (bioAvailable) {
+          $("btnRegisterBio").classList.remove("d-none");
+        } else {
+          $("btnRegisterBio").classList.add("d-none");
+        }
+      }
+
       const modal = new bootstrap.Modal($("pinModal"));
       modal.show();
-      setTimeout(() => $("dashPinInput").focus(), 400);
+
+      // Kung naka-register na ang Face ID / Fingerprint, i-trigger agad ang biometric prompt
+      if (bioAvailable && savedCredId && savedBioPin) {
+        setTimeout(() => authenticateBiometric(), 350);
+      } else {
+        setTimeout(() => $("dashPinInput").focus(), 400);
+      }
+    }
+
+    // 1. Mag-register ng Face ID / Fingerprint (kailangan muna i-type ang tamang PIN)
+    async function registerBiometric() {
+      const entered = $("dashPinInput").value.trim();
+      if (!entered) {
+        $("pinError").textContent = "Type the Supervisor PIN first, then tap Register Face ID.";
+        $("pinError").classList.remove("d-none");
+        $("dashPinInput").focus();
+        return;
+      }
+
+      $("btnRegisterBio").disabled = true;
+      $("btnRegisterBio").innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i>Verifying PIN...';
+      $("pinError").classList.add("d-none");
+
+      try {
+        const res = await fetchDashboardFromServer(entered);
+        if (!res || !res.success) {
+          $("pinError").textContent = (res && res.message) || "Wrong Supervisor PIN.";
+          $("pinError").classList.remove("d-none");
+          return;
+        }
+
+        const challenge = new Uint8Array(32);
+        crypto.getRandomValues(challenge);
+        const userId = new Uint8Array(16);
+        crypto.getRandomValues(userId);
+
+        const cred = await navigator.credentials.create({
+          publicKey: {
+            challenge: challenge,
+            rp: { name: "Mega Prime Break Monitor" },
+            user: {
+              id: userId,
+              name: "supervisor@megaprime",
+              displayName: "Production Supervisor"
+            },
+            pubKeyCredParams: [
+              { type: "public-key", alg: -7 },
+              { type: "public-key", alg: -257 }
+            ],
+            authenticatorSelection: {
+              authenticatorAttachment: "platform",
+              userVerification: "required"
+            },
+            timeout: 60000
+          }
+        });
+
+        localStorage.setItem("supBioCredId", bufToB64(cred.rawId));
+        localStorage.setItem("supBioPin", entered);
+
+        dashPin = entered;
+        dashData = res;
+        timeOffsetMs = res.serverNowMs - Date.now();
+        bootstrap.Modal.getInstance($("pinModal")).hide();
+        openDashboardModal(true);
+      } catch (e) {
+        $("pinError").textContent = "Face ID / Fingerprint registration cancelled or not supported on this browser.";
+        $("pinError").classList.remove("d-none");
+      } finally {
+        $("btnRegisterBio").disabled = false;
+        $("btnRegisterBio").innerHTML = '<i class="fa-solid fa-fingerprint me-1 text-primary"></i>Register Face ID / Fingerprint';
+      }
+    }
+
+    // 2. Mag-unlock gamit ang Face ID / Fingerprint
+    async function authenticateBiometric() {
+      const savedCredId = localStorage.getItem("supBioCredId");
+      const savedBioPin = localStorage.getItem("supBioPin");
+      if (!savedCredId || !savedBioPin) return;
+
+      $("btnBioLogin").disabled = true;
+      $("btnBioLogin").innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i>Scanning Face / Finger...';
+      $("pinError").classList.add("d-none");
+
+      try {
+        const challenge = new Uint8Array(32);
+        crypto.getRandomValues(challenge);
+
+        await navigator.credentials.get({
+          publicKey: {
+            challenge: challenge,
+            allowCredentials: [{
+              type: "public-key",
+              id: b64ToBuf(savedCredId)
+            }],
+            userVerification: "required",
+            timeout: 60000
+          }
+        });
+
+        // Verified na ang mukha/daliri ng supervisor -> i-load ang dashboard
+        const res = await fetchDashboardFromServer(savedBioPin);
+        if (res && res.success) {
+          dashPin = savedBioPin;
+          dashData = res;
+          timeOffsetMs = res.serverNowMs - Date.now();
+          bootstrap.Modal.getInstance($("pinModal")).hide();
+          openDashboardModal(true);
+        } else {
+          $("pinError").textContent = "Supervisor PIN changed on server. Please enter new PIN.";
+          $("pinError").classList.remove("d-none");
+        }
+      } catch (e) {
+        $("pinError").textContent = "Face ID / Fingerprint not recognized or cancelled. You can use PIN below.";
+        $("pinError").classList.remove("d-none");
+      } finally {
+        $("btnBioLogin").disabled = false;
+        $("btnBioLogin").innerHTML = '<i class="fa-solid fa-face-smile fa-lg text-warning me-2"></i>Unlock with Face ID / Fingerprint';
+      }
+    }
+
+    function resetBiometric() {
+      localStorage.removeItem("supBioCredId");
+      localStorage.removeItem("supBioPin");
+      $("bioLoginSection").classList.add("d-none");
+      $("btnResetBio").classList.add("d-none");
+      if (hasBiometricSupport()) $("btnRegisterBio").classList.remove("d-none");
+      $("pinError").textContent = "Saved Face ID / Fingerprint removed.";
+      $("pinError").classList.remove("d-none");
     }
 
     async function verifyDashboardPin() {
@@ -848,7 +1025,7 @@
         $("pinError").classList.remove("d-none");
       } finally {
         $("btnUnlockDash").disabled = false;
-        $("btnUnlockDash").innerHTML = '<i class="fa-solid fa-unlock me-1"></i>Open Dashboard';
+        $("btnUnlockDash").innerHTML = '<i class="fa-solid fa-unlock me-1"></i>Open with PIN';
       }
     }
 
