@@ -72,31 +72,44 @@
     .form-control::placeholder { color: #94a3b8; }
     .btn-mobile { padding: 12px; font-size: 1.1rem; font-family: 'Orbitron', sans-serif; font-weight: 700; }
 
+    /* Dashboard styling - LARGE & FULLSCREEN */
     .stat-card {
-      border-radius: 12px;
-      padding: 12px 15px;
-      border: 1px solid rgba(0,0,0,0.08);
+      border-radius: 14px;
+      padding: 16px 18px;
+      border: 1px solid rgba(0,0,0,0.1);
       background: #ffffff;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+      box-shadow: 0 3px 10px rgba(0,0,0,0.06);
+    }
+    .stat-label {
+      font-size: 0.95rem;
+      letter-spacing: 0.5px;
     }
     .stat-num {
       font-family: 'Orbitron', sans-serif;
-      font-size: 1.7rem;
-      font-weight: 800;
-      line-height: 1.1;
+      font-size: 2.3rem;
+      font-weight: 900;
+      line-height: 1.15;
     }
     .table-dash th {
-      font-size: 0.85rem;
+      font-size: 0.95rem;
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      background: #f8fafc;
+      background: #e2e8f0;
+      color: #0f172a;
+      padding: 12px 10px;
       position: sticky;
       top: 0;
       z-index: 1;
+      white-space: nowrap;
     }
     .table-dash td {
       vertical-align: middle;
-      font-size: 0.98rem;
+      font-size: 1.1rem;
+      padding: 12px 10px;
+    }
+    .table-dash .badge {
+      font-size: 0.9rem;
+      padding: 6px 10px;
     }
   </style>
 </head>
@@ -111,7 +124,7 @@
         <button class="btn btn-dark btn-sm fw-bold shadow-sm px-3 py-2" onclick="openDashboardAuth()">
           <i class="fa-solid fa-chart-line me-1 text-warning"></i>Dashboard
         </button>
-        <div class="mt-1"><small class="badge bg-danger">v21 Zero-Delay Scan</small></div>
+        <div class="mt-1"><small class="badge bg-danger">v22 Full-Screen Dashboard</small></div>
       </div>
     </div>
   </header>
@@ -204,72 +217,77 @@
 
   <!-- Full-Screen Supervisor Dashboard Modal -->
   <div class="modal fade" id="dashboardModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-scrollable modal-fullscreen-md-down">
+    <div class="modal-dialog modal-fullscreen modal-dialog-scrollable">
       <div class="modal-content bg-light">
-        <div class="modal-header bg-dark text-white py-2">
+        <div class="modal-header bg-dark text-white py-3 px-4">
           <div>
-            <h5 class="modal-title orbitron text-warning mb-0">
+            <h4 class="modal-title orbitron text-warning mb-0 fs-4">
               <i class="fa-solid fa-chart-pie me-2"></i>BREAK MONITOR DASHBOARD
-            </h5>
-            <small class="text-light opacity-75" id="dashLastUpdated">Loading live data...</small>
+            </h4>
+            <div class="text-light opacity-75 fs-6" id="dashLastUpdated">Loading live data...</div>
           </div>
           <div class="d-flex gap-2 align-items-center">
-            <button class="btn btn-sm btn-outline-warning fw-bold" onclick="loadDashboardData()">
+            <button class="btn btn-warning fw-bold px-3 py-2" onclick="loadDashboardData()">
               <i class="fa-solid fa-arrows-rotate me-1" id="dashSpinIcon"></i>Refresh
             </button>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            <button type="button" class="btn btn-outline-light fw-bold px-3 py-2" data-bs-dismiss="modal">
+              <i class="fa-solid fa-xmark me-1"></i>Close
+            </button>
           </div>
         </div>
 
-        <div class="modal-body p-3">
-          <div class="row g-2 mb-3">
-            <div class="col-6 col-md-3">
-              <div class="stat-card border-start border-4 border-primary">
-                <div class="small text-muted fw-bold">ON BREAK (REGULAR)</div>
+        <div class="modal-body p-3 p-md-4">
+          <!-- Summary Cards -->
+          <div class="row g-3 mb-4">
+            <div class="col-6 col-lg-3">
+              <div class="stat-card border-start border-5 border-primary">
+                <div class="stat-label text-muted fw-bold">ON BREAK (REGULAR)</div>
                 <div class="stat-num text-primary" id="statOnRegular">0</div>
               </div>
             </div>
-            <div class="col-6 col-md-3">
-              <div class="stat-card border-start border-4 border-warning">
-                <div class="small text-muted fw-bold">ON BREAK (AGENCY)</div>
+            <div class="col-6 col-lg-3">
+              <div class="stat-card border-start border-5 border-warning">
+                <div class="stat-label text-muted fw-bold">ON BREAK (AGENCY)</div>
                 <div class="stat-num text-warning" id="statOnAgency">0</div>
               </div>
             </div>
-            <div class="col-6 col-md-3">
-              <div class="stat-card border-start border-4 border-success">
-                <div class="small text-muted fw-bold">COMPLETED (12H SHIFT)</div>
+            <div class="col-6 col-lg-3">
+              <div class="stat-card border-start border-5 border-success">
+                <div class="stat-label text-muted fw-bold">COMPLETED (12H SHIFT)</div>
                 <div class="stat-num text-success" id="statCompleted">0</div>
               </div>
             </div>
-            <div class="col-6 col-md-3">
-              <div class="stat-card border-start border-4 border-danger">
-                <div class="small text-muted fw-bold">OVERBREAKS (12H SHIFT)</div>
+            <div class="col-6 col-lg-3">
+              <div class="stat-card border-start border-5 border-danger">
+                <div class="stat-label text-muted fw-bold">OVERBREAKS (12H SHIFT)</div>
                 <div class="stat-num text-danger" id="statOverbreak">0</div>
               </div>
             </div>
           </div>
 
-          <div class="card border-0 shadow-sm mb-3">
-            <div class="card-body p-2 d-flex flex-wrap gap-2 justify-content-between align-items-center">
-              <div class="btn-group btn-group-sm" role="group">
-                <button type="button" class="btn btn-dark active" id="filterAll" onclick="setDashFilter('ALL')">All</button>
-                <button type="button" class="btn btn-outline-primary" id="filterRegular" onclick="setDashFilter('Regular')">Regular</button>
-                <button type="button" class="btn btn-outline-warning text-dark" id="filterAgency" onclick="setDashFilter('Agency')">Agency</button>
+          <!-- Filter & Search Bar -->
+          <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body p-3 d-flex flex-wrap gap-3 justify-content-between align-items-center">
+              <div class="btn-group" role="group">
+                <button type="button" class="btn btn-dark fw-bold px-3 py-2 active" id="filterAll" onclick="setDashFilter('ALL')">All</button>
+                <button type="button" class="btn btn-outline-primary fw-bold px-3 py-2" id="filterRegular" onclick="setDashFilter('Regular')">Regular</button>
+                <button type="button" class="btn btn-outline-warning text-dark fw-bold px-3 py-2" id="filterAgency" onclick="setDashFilter('Agency')">Agency</button>
               </div>
-              <div class="input-group input-group-sm" style="max-width: 280px;">
+              <div class="input-group" style="max-width: 360px;">
                 <span class="input-group-text bg-white"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
-                <input type="text" id="dashSearch" class="form-control" placeholder="Search Name, ID, or Position..." oninput="renderDashboardTables()">
+                <input type="text" id="dashSearch" class="form-control fs-6" placeholder="Search Name, ID, or Position..." oninput="renderDashboardTables()">
               </div>
             </div>
           </div>
 
-          <div class="card border-0 shadow-sm mb-3">
-            <div class="card-header bg-white fw-bold text-danger d-flex justify-content-between align-items-center">
+          <!-- Currently On Break Table -->
+          <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white py-3 fw-bold text-danger fs-5 d-flex justify-content-between align-items-center">
               <span><i class="fa-solid fa-person-walking-arrow-right me-2"></i>CURRENTLY ON BREAK (LIVE TIMER)</span>
-              <span class="badge bg-danger" id="onBreakBadge">0</span>
+              <span class="badge bg-danger fs-6 px-3 py-2" id="onBreakBadge">0</span>
             </div>
-            <div class="table-responsive" style="max-height: 260px;">
-              <table class="table table-hover table-sm table-dash mb-0">
+            <div class="table-responsive" style="max-height: 360px;">
+              <table class="table table-hover table-dash mb-0">
                 <thead>
                   <tr>
                     <th>ID</th>
@@ -282,18 +300,19 @@
                   </tr>
                 </thead>
                 <tbody id="onBreakTbody">
-                  <tr><td colspan="7" class="text-center text-muted py-3">Loading...</td></tr>
+                  <tr><td colspan="7" class="text-center text-muted py-4 fs-5">Loading...</td></tr>
                 </tbody>
               </table>
             </div>
           </div>
 
+          <!-- Recent Shift Logs Table -->
           <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white fw-bold text-dark">
+            <div class="card-header bg-white py-3 fw-bold text-dark fs-5">
               <i class="fa-solid fa-clock-rotate-left me-2 text-primary"></i>RECENT BREAK LOGS (CURRENT SHIFT)
             </div>
-            <div class="table-responsive" style="max-height: 300px;">
-              <table class="table table-striped table-sm table-dash mb-0">
+            <div class="table-responsive" style="max-height: 420px;">
+              <table class="table table-striped table-dash mb-0">
                 <thead>
                   <tr>
                     <th>Time</th>
@@ -307,7 +326,7 @@
                   </tr>
                 </thead>
                 <tbody id="recentLogsTbody">
-                  <tr><td colspan="8" class="text-center text-muted py-3">Loading...</td></tr>
+                  <tr><td colspan="8" class="text-center text-muted py-4 fs-5">Loading...</td></tr>
                 </tbody>
               </table>
             </div>
@@ -319,7 +338,7 @@
 
   <script>
     // PALITAN ITO NG BAGONG APPS SCRIPT /exec URL MO KAPAG NAG-NEW DEPLOYMENT KA
-    const API_URL = "https://script.google.com/macros/s/AKfycbxdV5ZhNcMtqSmHSLF22eoAzvF84C7mNY66bosmh-TQDn3mkaFDdL0N_k7rm8h52ExwGQ/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycby5MiuVoNSFcf2N5pExN5httCGQsHBnEBthxvhqcOLBJ5lztU0wSHrXf1fSkhDx_ItR0Q/exec";
 
     let scanner = null;
     let fileScanner = null;
@@ -329,7 +348,6 @@
     let lastId = "", lastTime = 0;
     let audioCtx = null;
 
-    // Local Directory & Break State para sa 0.1-second instant display
     let empCache = {};
     let empStateCache = {};
     try { empCache = JSON.parse(localStorage.getItem("empNameCache") || "{}"); } catch (e) {}
@@ -347,7 +365,6 @@
       return typeof google !== "undefined" && google.script && google.script.run;
     }
 
-    // I-preload ang lahat ng empleyado sa background pagbukas ng page
     function preloadEmployees() {
       const handler = function (res) {
         if (res && res.success && res.employees) {
@@ -740,7 +757,6 @@
         feedback(true);
         speakLoud("Thank you");
 
-        // Hulaan agad ang BREAK OUT / BREAK IN base sa local state para 0.1s labas agad ang oras at action
         const prev = empStateCache[empId];
         const withinShift = prev && (Date.now() - prev.ts) < (12 * 60 * 60 * 1000);
         const predictOut = !(withinShift && prev.isOut);
@@ -893,9 +909,9 @@
 
     function setDashFilter(filter) {
       dashFilter = filter;
-      $("filterAll").className = filter === "ALL" ? "btn btn-dark active" : "btn btn-outline-dark";
-      $("filterRegular").className = filter === "Regular" ? "btn btn-primary active" : "btn btn-outline-primary";
-      $("filterAgency").className = filter === "Agency" ? "btn btn-warning text-dark active" : "btn btn-outline-warning text-dark";
+      $("filterAll").className = filter === "ALL" ? "btn btn-dark fw-bold px-3 py-2 active" : "btn btn-outline-dark fw-bold px-3 py-2";
+      $("filterRegular").className = filter === "Regular" ? "btn btn-primary fw-bold px-3 py-2 active" : "btn btn-outline-primary fw-bold px-3 py-2";
+      $("filterAgency").className = filter === "Agency" ? "btn btn-warning text-dark fw-bold px-3 py-2 active" : "btn btn-outline-warning text-dark fw-bold px-3 py-2";
       renderDashboardTables();
     }
 
@@ -934,7 +950,7 @@
       $("onBreakBadge").textContent = filteredOnBreak.length;
 
       if (!filteredOnBreak.length) {
-        $("onBreakTbody").innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3">No employees currently on break.</td></tr>';
+        $("onBreakTbody").innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4 fs-5">No employees currently on break.</td></tr>';
       } else {
         const nowAdjusted = Date.now() + timeOffsetMs;
         $("onBreakTbody").innerHTML = filteredOnBreak.map(item => {
@@ -962,7 +978,7 @@
 
       const filteredLogs = dashData.recentLogs.filter(matchesFilter);
       if (!filteredLogs.length) {
-        $("recentLogsTbody").innerHTML = '<tr><td colspan="8" class="text-center text-muted py-3">No break logs found for this filter.</td></tr>';
+        $("recentLogsTbody").innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4 fs-5">No break logs found for this filter.</td></tr>';
       } else {
         $("recentLogsTbody").innerHTML = filteredLogs.map(item => {
           const isOut = item.action === "BREAK OUT";
