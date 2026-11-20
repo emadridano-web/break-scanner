@@ -145,7 +145,7 @@
         <button class="btn btn-dark btn-sm fw-bold shadow-sm px-3 py-2" onclick="openDashboardAuth()">
           <i class="fa-solid fa-face-viewfinder me-1 text-warning"></i>Dashboard
         </button>
-        <div class="mt-1"><small class="badge bg-danger">v25 Camera Face Scan + Dashboard</small></div>
+        <div class="mt-1"><small class="badge bg-danger">v26 Fast Face Match + Dashboard</small></div>
       </div>
     </div>
   </header>
@@ -248,7 +248,7 @@
                 <i class="fa-solid fa-camera me-1 text-warning"></i>Register Face via Camera
               </button>
               <button class="btn btn-link btn-sm text-danger text-decoration-none d-none" id="btnResetFace" onclick="resetRegisteredFace()">
-                <i class="fa-solid fa-trash-can me-1"></i>Remove Saved Face
+                <i class="fa-solid fa-trash-can me-1"></i>Remove Saved Face (Re-register)
               </button>
             </div>
           </div>
@@ -376,7 +376,7 @@
 
   <script>
     // PALITAN ITO NG BAGONG APPS SCRIPT /exec URL MO KAPAG NAG-NEW DEPLOYMENT KA
-    const API_URL = "https://script.google.com/macros/s/AKfycbwSPyUX7bDl5iT9hLPgeKNOo0r41hlTsUYaA9I2JDqPimsWabB-6dByxBfomVGIogZz_w/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycbzq-3dnKkD-yfyRAAcsml-9aGi1YkavwL5zijg8Ppf7f1icrApNASAnsjOdwRX_MrO4sg/exec";
 
     let scanner = null;
     let fileScanner = null;
@@ -433,6 +433,9 @@
 
     window.addEventListener("load", function () {
       preloadEmployees();
+      // I-preload na agad ang Face AI models sa background para 0-second wait sa Dashboard
+      setTimeout(() => { loadFaceModels().catch(() => {}); }, 1200);
+
       const ua = navigator.userAgent || "";
       const warn = [];
       if (!inAppsScript() && API_URL.indexOf("PASTE_YOUR_ID_HERE") !== -1) {
@@ -839,7 +842,7 @@
       finish();
     }
 
-    /* ---------- CAMERA AI FACE RECOGNITION + SUPERVISOR DASHBOARD ---------- */
+    /* ---------- FAST CAMERA FACE RECOGNITION + SUPERVISOR DASHBOARD ---------- */
     let dashPin = "";
     let dashData = null;
     let dashFilter = "ALL";
@@ -849,19 +852,27 @@
 
     const FACE_MODEL_URL = "https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/model";
     let faceModelsReady = false;
+    let faceModelsLoadingPromise = null;
     let faceStream = null;
     let faceLoopActive = false;
 
-    async function loadFaceModels() {
-      if (faceModelsReady) return true;
-      if (typeof faceapi === "undefined") return false;
-      await Promise.all([
+    function loadFaceModels() {
+      if (faceModelsReady) return Promise.resolve(true);
+      if (faceModelsLoadingPromise) return faceModelsLoadingPromise;
+      if (typeof faceapi === "undefined") return Promise.resolve(false);
+
+      faceModelsLoadingPromise = Promise.all([
         faceapi.nets.tinyFaceDetector.loadFromUri(FACE_MODEL_URL),
         faceapi.nets.faceLandmark68TinyNet.loadFromUri(FACE_MODEL_URL),
         faceapi.nets.faceRecognitionNet.loadFromUri(FACE_MODEL_URL)
-      ]);
-      faceModelsReady = true;
-      return true;
+      ]).then(() => {
+        faceModelsReady = true;
+        return true;
+      }).catch(err => {
+        faceModelsLoadingPromise = null;
+        throw err;
+      });
+      return faceModelsLoadingPromise;
     }
 
     function stopFaceCamera() {
@@ -877,7 +888,7 @@
     async function startFaceCamera() {
       const vid = $("faceVideo");
       faceStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "user", width: { ideal: 320 }, height: { ideal: 320 } },
+        video: { facingMode: "user", width: { ideal: 256 }, height: { ideal: 256 } },
         audio: false
       });
       vid.srcObject = faceStream;
@@ -885,7 +896,6 @@
     }
 
     async function openDashboardAuth() {
-      // I-pause muna ang QR scanner camera kung nakabukas para magamit ang front camera sa Face Scan
       if (cameraOn) {
         restartOnReturn = true;
         await stopCamera();
@@ -925,7 +935,7 @@
       }
     }
 
-    // 1. Mag-register ng Mukha gamit ang Camera
+    // 1. Register Face (Fast 160px detector)
     async function startFaceRegistration() {
       const entered = $("dashPinInput").value.trim();
       if (!entered) {
@@ -940,29 +950,32 @@
       $("faceCameraSection").classList.remove("d-none");
       $("faceCamWrap").style.borderColor = "#f59e0b";
       $("faceStatusText").className = "fw-bold text-primary small mb-2";
-      $("faceStatusText").innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i>Verifying PIN & loading AI face scanner...';
+      $("faceStatusText").innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i>Verifying PIN & starting camera...';
 
       try {
-        const res = await fetchDashboardFromServer(entered);
+        const [res, loaded] = await Promise.all([
+          fetchDashboardFromServer(entered),
+          loadFaceModels()
+        ]);
+
         if (!res || !res.success) {
           $("faceCameraSection").classList.add("d-none");
           $("pinError").textContent = (res && res.message) || "Wrong Supervisor PIN.";
           $("pinError").classList.remove("d-none");
           return;
         }
-
-        const loaded = await loadFaceModels();
         if (!loaded) throw new Error("Face AI library failed to load. Check internet.");
 
         await startFaceCamera();
-        $("faceStatusText").innerHTML = '<i class="fa-solid fa-face-smile me-1 text-warning"></i>Itapat ang mukha sa bilog (hold steady)...';
+        $("faceStatusText").innerHTML = '<i class="fa-solid fa-face-smile me-1 text-warning"></i>Itapat ang mukha sa bilog...';
 
         faceLoopActive = true;
         const vid = $("faceVideo");
-        const opts = new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 });
+        // Fast inputSize: 160 para mabilis sa lahat ng phone
+        const opts = new faceapi.TinyFaceDetectorOptions({ inputSize: 160, scoreThreshold: 0.35 });
 
         let attempts = 0;
-        while (faceLoopActive && attempts < 40) {
+        while (faceLoopActive && attempts < 50) {
           attempts++;
           const det = await faceapi.detectSingleFace(vid, opts).withFaceLandmarks(true).withFaceDescriptor();
           if (det && det.descriptor) {
@@ -975,7 +988,7 @@
             $("faceStatusText").innerHTML = '<i class="fa-solid fa-circle-check me-1"></i>Face Registered! Opening Dashboard...';
             feedback(true);
 
-            await new Promise(r => setTimeout(r, 600));
+            await new Promise(r => setTimeout(r, 400));
             stopFaceCamera();
 
             dashPin = entered;
@@ -985,7 +998,7 @@
             openDashboardModal(true);
             return;
           }
-          await new Promise(r => setTimeout(r, 250));
+          await new Promise(r => setTimeout(r, 120));
         }
 
         if (faceLoopActive) {
@@ -1003,38 +1016,45 @@
       }
     }
 
-    // 2. Mag-verify ng Mukha pagbukas ng Dashboard
+    // 2. Fast Face Verification (Sabay ang camera start, AI check, at dashboard fetch)
     async function startFaceVerification(savedDescArray, savedPin) {
       $("faceCamWrap").style.borderColor = "#dc2626";
       $("faceStatusText").className = "fw-bold text-primary small mb-2";
-      $("faceStatusText").innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i>Loading face scanner...';
+      $("faceStatusText").innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i>Opening face camera...';
 
       try {
-        const loaded = await loadFaceModels();
+        // I-start ang camera at AI models nang sabay
+        const [loaded] = await Promise.all([
+          loadFaceModels(),
+          startFaceCamera()
+        ]);
         if (!loaded) throw new Error("AI models not loaded.");
 
-        await startFaceCamera();
+        // I-preload na rin ang dashboard data habang ini-scan ang mukha para zero-delay pag-unlock
+        const dashPromise = fetchDashboardFromServer(savedPin).catch(() => null);
+
         $("faceStatusText").innerHTML = '<i class="fa-solid fa-face-viewfinder me-1 text-danger"></i>Scanning your face...';
 
         const savedFloat = new Float32Array(savedDescArray);
         const vid = $("faceVideo");
-        const opts = new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 });
+        const opts = new faceapi.TinyFaceDetectorOptions({ inputSize: 160, scoreThreshold: 0.35 });
 
         faceLoopActive = true;
         let attempts = 0;
 
-        while (faceLoopActive && attempts < 45) {
+        while (faceLoopActive && attempts < 60) {
           attempts++;
           const det = await faceapi.detectSingleFace(vid, opts).withFaceLandmarks(true).withFaceDescriptor();
           if (det && det.descriptor) {
             const distance = faceapi.euclideanDistance(savedFloat, det.descriptor);
-            if (distance < 0.52) {
+            // 0.60 threshold para mabilis makilala kahit mag-iba ang ilaw o anggulo
+            if (distance < 0.60) {
               $("faceCamWrap").style.borderColor = "#16a34a";
               $("faceStatusText").className = "fw-bold text-success small mb-2";
-              $("faceStatusText").innerHTML = '<i class="fa-solid fa-circle-check me-1"></i>Face Verified! Unlocking...';
+              $("faceStatusText").innerHTML = '<i class="fa-solid fa-circle-check me-1"></i>Verified! Opening...';
               feedback(true);
 
-              const res = await fetchDashboardFromServer(savedPin);
+              const res = (await dashPromise) || (await fetchDashboardFromServer(savedPin));
               stopFaceCamera();
 
               if (res && res.success) {
@@ -1050,15 +1070,15 @@
               return;
             } else {
               $("faceStatusText").className = "fw-bold text-warning small mb-2";
-              $("faceStatusText").textContent = "Face not matched yet — look straight at the camera...";
+              $("faceStatusText").textContent = "Look straight at the camera (" + Math.round((1 - distance) * 100) + "% match)...";
             }
           }
-          await new Promise(r => setTimeout(r, 250));
+          await new Promise(r => setTimeout(r, 120));
         }
 
         if (faceLoopActive) {
           $("faceStatusText").className = "fw-bold text-danger small mb-2";
-          $("faceStatusText").textContent = "Face scan timed out. You can use the Supervisor PIN below.";
+          $("faceStatusText").textContent = "Face not matched. Tap 'Remove Saved Face' to re-register in better lighting, or use PIN below.";
           stopFaceCamera();
         }
       } catch (e) {
@@ -1076,7 +1096,7 @@
       $("btnResetFace").classList.add("d-none");
       $("btnRegisterFace").classList.remove("d-none");
       $("pinPromptLabel").textContent = "Enter Supervisor PIN to access or register Face Scan";
-      $("pinError").textContent = "Saved face removed.";
+      $("pinError").textContent = "Saved face removed. Enter PIN and tap Register Face.";
       $("pinError").classList.remove("d-none");
     }
 
