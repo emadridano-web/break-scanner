@@ -185,7 +185,7 @@
         <button class="btn btn-dark btn-sm fw-bold shadow-sm px-3 py-2" onclick="openDashboardAuth()">
           <i class="fa-solid fa-chart-pie me-1 text-warning"></i>Dashboard
         </button>
-        <div class="mt-1"><small class="badge bg-danger">v31 Strict Face Bio + Cloud Sync</small></div>
+        <div class="mt-1"><small class="badge bg-danger">v32 Safe Enroll + Cloud Sync</small></div>
       </div>
     </div>
   </header>
@@ -492,7 +492,7 @@
 
   <script>
     // PALITAN ITO NG BAGONG APPS SCRIPT /exec URL MO KAPAG NAG-NEW DEPLOYMENT KA
-    const API_URL = "https://script.google.com/macros/s/AKfycbwuv9I8rsQYq1EsT_49z1S8Ug4MiMifTJdCGim7rji3_mrp3jdxVUgtclxfDoI6N1cLFQ/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycby1SX8heLBEcEa5DlBOy2RiOjdYTgG-hkTOFL6LDGuWfna4fofvPJBvZpsKIYND3qXqWg/exec";
 
     // STRICT BIOMETRIC THRESHOLD (0.43 = mataas ang security, hindi magkakamali sa mukha ng iba)
     const STRICT_MATCH_THRESHOLD = 0.43;
@@ -504,6 +504,7 @@
     try { camId = localStorage.getItem("frontCamId") || ""; } catch (e) {}
 
     let lastId = "", lastTime = 0;
+    let lastEnrollCooldown = {}; // Cooldown map para hindi agad ma-scan ang bagong enroll na mukha
     let audioCtx = null;
 
     let empCache = {};
@@ -698,7 +699,6 @@
       return faceModelsLoadingPromise;
     }
 
-    // Helper: Kumuha ng 3-shot averaged face descriptor para hindi nalilito sa ibang tao
     async function captureAveragedDescriptor(videoEl, onProgress) {
       const opts = new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.55 });
       const samples = [];
@@ -708,7 +708,6 @@
         attempts++;
         const det = await faceapi.detectSingleFace(videoEl, opts).withFaceLandmarks().withFaceDescriptor();
         if (det && det.descriptor) {
-          // Siguraduhing magkatugma ang 3 shots sa isa't isa bago i-average
           if (samples.length === 0 || faceapi.euclideanDistance(samples[0], det.descriptor) < 0.38) {
             samples.push(det.descriptor);
             if (onProgress) onProgress(samples.length, 3);
@@ -917,12 +916,15 @@
           saveEnrolledEmployees(list);
           pushFacesToCloud(pin);
 
-          $("bioFaceGuide").style.borderColor = "#16a34a";
-          $("bioOverlayText").textContent = "Enrolled: " + empName;
+          // 15-second cooldown + kusang isara ang camera pagkatapos mag-register para HINDI mag-log agad ng break
+          lastEnrollCooldown[empId] = Date.now() + 15000;
+          await stopBioCamera();
+
           statusEl.className = "small fw-bold text-success mb-2";
-          statusEl.innerHTML = '<i class="fa-solid fa-circle-check me-1"></i>Na-save ang HD Face Bio ni <b>' + esc(empName) + ' (' + esc(empId) + ')</b>!';
+          statusEl.innerHTML = '<i class="fa-solid fa-circle-check me-1"></i>Na-save ang HD Face Bio ni <b>' + esc(empName) + ' (' + esc(empId) + ')</b>! (Hindi muna ni-record ang break)';
+          setResult(icon("fa-user-check text-success") + 'Registered: <strong>' + esc(empName) + '</strong> (' + esc(empId) + '). Tap <b>START FACE BIO SCANNER</b> kapag gagamitin na.');
           feedback(true);
-          speakLoud("Enrolled");
+          speakLoud("Registered");
 
           $("enrollEmpId").value = "";
           $("enrollPin").value = "";
@@ -937,12 +939,6 @@
       } finally {
         $("btnCaptureEmpFace").disabled = false;
         isEnrollingNow = false;
-        setTimeout(() => {
-          if (cameraOn && !isEnrollingNow) {
-            $("bioFaceGuide").style.borderColor = "rgba(255,255,255,0.75)";
-            $("bioOverlayText").textContent = "Ready - Look at Camera";
-          }
-        }, 1500);
       }
     }
 
@@ -980,7 +976,9 @@
         updateCameraUi();
 
         $("bioOverlayText").textContent = "Ready - Look at Camera";
-        setResult(icon("fa-face-viewfinder text-danger") + "Itapat ang mukha sa camera para mag-Break Out / Break In");
+        if (!isEnrollingNow) {
+          setResult(icon("fa-face-viewfinder text-danger") + "Itapat ang mukha sa camera para mag-Break Out / Break In");
+        }
 
         startBioRecognitionLoop();
       } catch (err) {
@@ -1017,30 +1015,36 @@
                   }
                 }
 
-                // STRICT THRESHOLD + 2 CONSECUTIVE FRAMES CONFIRMATION
                 if (bestEmp && bestDist <= STRICT_MATCH_THRESHOLD) {
-                  if (streakEmpId === bestEmp.id) {
-                    streakCount++;
-                  } else {
-                    streakEmpId = bestEmp.id;
-                    streakCount = 1;
-                  }
-
-                  if (streakCount >= 2) {
-                    streakEmpId = "";
-                    streakCount = 0;
-                    $("bioFaceGuide").style.borderColor = "#16a34a";
-                    $("bioOverlayText").textContent = "Matched: " + bestEmp.name + " (" + bestEmp.id + ")";
-                    await processEmployeeId(bestEmp.id, true);
-                    setTimeout(() => {
-                      if (cameraOn && !isEnrollingNow) {
-                        $("bioFaceGuide").style.borderColor = "rgba(255,255,255,0.75)";
-                        $("bioOverlayText").textContent = "Ready - Look at Camera";
-                      }
-                    }, 2000);
-                  } else {
+                  // Kung kaka-enroll lang nitong nakaraang 15 seconds, huwag muna mag-record
+                  if (lastEnrollCooldown[bestEmp.id] && Date.now() < lastEnrollCooldown[bestEmp.id]) {
+                    const secsLeft = Math.ceil((lastEnrollCooldown[bestEmp.id] - Date.now()) / 1000);
                     $("bioFaceGuide").style.borderColor = "#3b82f6";
-                    $("bioOverlayText").textContent = "Verifying " + bestEmp.name + "...";
+                    $("bioOverlayText").textContent = "Newly Enrolled (" + secsLeft + "s cooldown)";
+                  } else {
+                    if (streakEmpId === bestEmp.id) {
+                      streakCount++;
+                    } else {
+                      streakEmpId = bestEmp.id;
+                      streakCount = 1;
+                    }
+
+                    if (streakCount >= 2) {
+                      streakEmpId = "";
+                      streakCount = 0;
+                      $("bioFaceGuide").style.borderColor = "#16a34a";
+                      $("bioOverlayText").textContent = "Matched: " + bestEmp.name + " (" + bestEmp.id + ")";
+                      await processEmployeeId(bestEmp.id, true);
+                      setTimeout(() => {
+                        if (cameraOn && !isEnrollingNow) {
+                          $("bioFaceGuide").style.borderColor = "rgba(255,255,255,0.75)";
+                          $("bioOverlayText").textContent = "Ready - Look at Camera";
+                        }
+                      }, 2000);
+                    } else {
+                      $("bioFaceGuide").style.borderColor = "#3b82f6";
+                      $("bioOverlayText").textContent = "Verifying " + bestEmp.name + "...";
+                    }
                   }
                 } else {
                   streakEmpId = "";
@@ -1458,21 +1462,15 @@
           saveFaceProfiles(updatedList);
           pushFacesToCloud(entered);
 
-          $("faceCamWrap").style.borderColor = "#16a34a";
-          $("faceStatusText").className = "fw-bold text-success small mb-2";
-          $("faceStatusText").innerHTML = '<i class="fa-solid fa-circle-check me-1"></i>' + esc(labelName) + ' Registered! Opening...';
+          stopFaceCamera();
+          $("faceCameraSection").classList.add("d-none");
+          $("pinError").className = "text-success small fw-bold mb-2";
+          $("pinError").textContent = labelName + " Registered! Pwede ka nang mag-login gamit ang mukha o PIN.";
+          $("pinError").classList.remove("d-none");
           feedback(true);
 
           $("dashPinInput").value = "";
           $("faceLabelInput").value = "";
-          await new Promise(r => setTimeout(r, 450));
-          stopFaceCamera();
-
-          dashPin = entered;
-          dashData = res;
-          timeOffsetMs = res.serverNowMs - Date.now();
-          bootstrap.Modal.getInstance($("pinModal")).hide();
-          openDashboardModal(true);
         } else {
           $("faceStatusText").className = "fw-bold text-danger small mb-2";
           $("faceStatusText").textContent = "Hindi nakakuha ng 3 malinaw na kuha. Siguraduhing maliwanag at subukan ulit.";
