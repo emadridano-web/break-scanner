@@ -185,7 +185,7 @@
         <button class="btn btn-dark btn-sm fw-bold shadow-sm px-3 py-2" onclick="openDashboardAuth()">
           <i class="fa-solid fa-chart-pie me-1 text-warning"></i>Dashboard
         </button>
-        <div class="mt-1"><small class="badge bg-danger">v29 Face Biometric + Dashboard</small></div>
+        <div class="mt-1"><small class="badge bg-danger">v31 Strict Face Bio + Cloud Sync</small></div>
       </div>
     </div>
   </header>
@@ -206,6 +206,7 @@
 
           <div id="camInfo" class="small text-muted fw-bold mb-2">
             Enrolled Employees: <span class="text-danger" id="enrolledEmpCount">0</span>
+            <span id="cloudSyncBadge" class="ms-2 badge bg-secondary">Local</span>
           </div>
 
           <button id="btnStart" class="btn btn-danger w-100 btn-mobile mb-2 shadow-sm" onclick="startBioCamera()">
@@ -229,7 +230,7 @@
             </button>
             <div id="enrollBox" class="d-none p-3 border border-dark rounded bg-light mb-2">
               <div class="small text-dark fw-bold mb-2">
-                <i class="fa-solid fa-id-badge text-danger me-1"></i>Register Employee Face (One-Time Setup)
+                <i class="fa-solid fa-id-badge text-danger me-1"></i>Register Employee Face (3-Shot HD Scan)
               </div>
               <input type="text" id="enrollEmpId" class="form-control mb-2" placeholder="Employee ID (e.g. 001)" inputmode="numeric">
               <input type="tel" id="enrollPin" name="enroll_pin_noconflict" autocomplete="one-time-code"
@@ -245,12 +246,12 @@
               <!-- Enrolled Employees List -->
               <div id="enrolledListWrap" class="mt-3 pt-2 border-top d-none">
                 <div class="d-flex justify-content-between align-items-center mb-1">
-                  <span class="small fw-bold text-dark">Enrolled Faces (<span id="enrolledListCount">0</span>)</span>
-                  <button type="button" class="btn btn-link btn-sm text-danger p-0 fw-bold text-decoration-none" onclick="deleteAllEmployeeFaces()">
-                    Clear All (PIN)
+                  <span class="small fw-bold text-dark"><i class="fa-solid fa-lock text-danger me-1"></i>Protected Enrolled Faces (<span id="enrolledListCount">0</span>)</span>
+                  <button type="button" class="btn btn-outline-danger btn-sm py-0 px-2 fw-bold" onclick="promptDeleteAction('EMP_ALL', '', 'ALL Enrolled Employee Faces')">
+                    Clear All
                   </button>
                 </div>
-                <div id="enrolledEmpList" class="list-group list-group-flush small" style="max-height: 150px; overflow-y: auto;"></div>
+                <div id="enrolledEmpList" class="list-group list-group-flush small mt-1" style="max-height: 160px; overflow-y: auto;"></div>
               </div>
             </div>
           </div>
@@ -285,6 +286,32 @@
           </div>
 
           <div id="result" class="result-box"><i class="fa-solid fa-hand-pointer me-2 text-danger"></i>Tap the red button above to start Face Biometric scanning.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Password Confirmation Modal for Deleting Any Face Bio -->
+  <div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-hidden="true" style="z-index: 1065;">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+      <div class="modal-content border-danger shadow-lg">
+        <div class="modal-header bg-dark text-warning py-2">
+          <h6 class="modal-title orbitron mb-0 fs-6"><i class="fa-solid fa-shield-halved me-1"></i>CONFIRM DELETE</h6>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body text-center p-3">
+          <p class="small fw-bold text-dark mb-2" id="deleteConfirmTargetText">Delete Face Bio?</p>
+          <p class="small text-muted mb-2">Enter Supervisor Password / PIN to permanently delete:</p>
+          <input type="tel" id="deleteConfirmPin" name="del_pin_noconflict" autocomplete="one-time-code"
+                 class="form-control text-center fs-5 fw-bold mb-2" style="-webkit-text-security: disc;"
+                 placeholder="••••" inputmode="numeric" onkeydown="if(event.key==='Enter') executeProtectedDelete()">
+          <div id="deleteConfirmError" class="text-danger small fw-bold mb-2 d-none"></div>
+          <div class="d-grid gap-2">
+            <button type="button" class="btn btn-danger fw-bold" id="btnConfirmDeleteExec" onclick="executeProtectedDelete()">
+              <i class="fa-solid fa-trash-can me-1"></i>Verify PIN & Delete
+            </button>
+            <button type="button" class="btn btn-outline-secondary btn-sm fw-bold" data-bs-dismiss="modal">Cancel</button>
+          </div>
         </div>
       </div>
     </div>
@@ -333,12 +360,12 @@
 
             <div id="registeredFacesBox" class="mt-3 pt-2 border-top text-start mx-auto d-none" style="max-width: 310px;">
               <div class="d-flex justify-content-between align-items-center mb-1">
-                <span class="small fw-bold text-dark"><i class="fa-solid fa-users-viewfinder me-1 text-danger"></i>Supervisor Faces (<span id="faceCountBadge">0</span>)</span>
-                <button class="btn btn-link btn-sm text-danger p-0 text-decoration-none fw-bold" onclick="removeAllFaces()">
-                  Remove All (PIN)
+                <span class="small fw-bold text-dark"><i class="fa-solid fa-lock me-1 text-danger"></i>Supervisor Faces (<span id="faceCountBadge">0</span>)</span>
+                <button type="button" class="btn btn-outline-danger btn-sm py-0 px-2 fw-bold" onclick="promptDeleteAction('SUP_ALL', '', 'ALL Supervisor Faces')">
+                  Remove All
                 </button>
               </div>
-              <div id="registeredFacesList" class="list-group list-group-flush small"></div>
+              <div id="registeredFacesList" class="list-group list-group-flush small mt-1"></div>
             </div>
           </div>
         </div>
@@ -465,7 +492,10 @@
 
   <script>
     // PALITAN ITO NG BAGONG APPS SCRIPT /exec URL MO KAPAG NAG-NEW DEPLOYMENT KA
-    const API_URL = "https://script.google.com/macros/s/AKfycbw7QN0kPhzioUb7BZR6ly4U0FETekEXHl3NrGBo7ngQy4Z3ITYiiqrV3iqaKhcJ9trVVQ/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycbwuv9I8rsQYq1EsT_49z1S8Ug4MiMifTJdCGim7rji3_mrp3jdxVUgtclxfDoI6N1cLFQ/exec";
+
+    // STRICT BIOMETRIC THRESHOLD (0.43 = mataas ang security, hindi magkakamali sa mukha ng iba)
+    const STRICT_MATCH_THRESHOLD = 0.43;
 
     let busy = false, cameraOn = false, restartOnReturn = false;
     let bioStream = null, bioLoopActive = false, isEnrollingNow = false;
@@ -508,6 +538,50 @@
       }
     }
 
+    /* ---------- CLOUD BACKUP & AUTO-RESTORE NG FACE BIO ---------- */
+    async function syncFacesFromCloud() {
+      if (inAppsScript() || API_URL.indexOf("PASTE_YOUR_ID_HERE") !== -1) return;
+      try {
+        const res = await fetch(API_URL + "?action=getfaces").then(r => r.json());
+        if (res && res.success) {
+          const localEmp = getEnrolledEmployees();
+          const localSup = getSavedFaceProfiles();
+
+          if (Array.isArray(res.empFaces) && res.empFaces.length > 0 && localEmp.length === 0) {
+            localStorage.setItem("empFaceBioList", JSON.stringify(res.empFaces));
+            renderEnrolledEmployees();
+          }
+          if (Array.isArray(res.supFaces) && res.supFaces.length > 0 && localSup.length === 0) {
+            localStorage.setItem("supFaceProfiles", JSON.stringify(res.supFaces));
+            renderSavedFacesList();
+          }
+          $("cloudSyncBadge").className = "ms-2 badge bg-success";
+          $("cloudSyncBadge").innerHTML = '<i class="fa-solid fa-cloud-check me-1"></i>Cloud Protected';
+        }
+      } catch (e) {}
+    }
+
+    async function pushFacesToCloud(pin) {
+      if (inAppsScript() || API_URL.indexOf("PASTE_YOUR_ID_HERE") !== -1 || !pin) return;
+      try {
+        const payload = {
+          action: "savefaces",
+          pin: pin,
+          empFaces: getEnrolledEmployees(),
+          supFaces: getSavedFaceProfiles()
+        };
+        const res = await fetch(API_URL, {
+          method: "POST",
+          body: JSON.stringify(payload)
+        }).then(r => r.json());
+
+        if (res && res.success) {
+          $("cloudSyncBadge").className = "ms-2 badge bg-success";
+          $("cloudSyncBadge").innerHTML = '<i class="fa-solid fa-cloud-check me-1"></i>Cloud Protected';
+        }
+      } catch (e) {}
+    }
+
     function callServer(id) {
       if (inAppsScript()) {
         return new Promise(function (resolve, reject) {
@@ -525,6 +599,7 @@
     window.addEventListener("load", function () {
       preloadEmployees();
       renderEnrolledEmployees();
+      syncFacesFromCloud();
       setTimeout(() => { loadFaceModels().catch(() => {}); }, 800);
 
       const ua = navigator.userAgent || "";
@@ -599,7 +674,7 @@
       } catch (e) {}
     }
 
-    /* ---------- FACE AI MODELS LOADER ---------- */
+    /* ---------- FACE AI MODELS LOADER (HD LANDMARKS) ---------- */
     const FACE_MODEL_URL = "https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/model";
     let faceModelsReady = false;
     let faceModelsLoadingPromise = null;
@@ -611,7 +686,7 @@
 
       faceModelsLoadingPromise = Promise.all([
         faceapi.nets.tinyFaceDetector.loadFromUri(FACE_MODEL_URL),
-        faceapi.nets.faceLandmark68TinyNet.loadFromUri(FACE_MODEL_URL),
+        faceapi.nets.faceLandmark68Net.loadFromUri(FACE_MODEL_URL),
         faceapi.nets.faceRecognitionNet.loadFromUri(FACE_MODEL_URL)
       ]).then(() => {
         faceModelsReady = true;
@@ -621,6 +696,117 @@
         throw err;
       });
       return faceModelsLoadingPromise;
+    }
+
+    // Helper: Kumuha ng 3-shot averaged face descriptor para hindi nalilito sa ibang tao
+    async function captureAveragedDescriptor(videoEl, onProgress) {
+      const opts = new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.55 });
+      const samples = [];
+      let attempts = 0;
+
+      while (attempts < 70 && samples.length < 3) {
+        attempts++;
+        const det = await faceapi.detectSingleFace(videoEl, opts).withFaceLandmarks().withFaceDescriptor();
+        if (det && det.descriptor) {
+          // Siguraduhing magkatugma ang 3 shots sa isa't isa bago i-average
+          if (samples.length === 0 || faceapi.euclideanDistance(samples[0], det.descriptor) < 0.38) {
+            samples.push(det.descriptor);
+            if (onProgress) onProgress(samples.length, 3);
+          }
+        }
+        await new Promise(r => setTimeout(r, 140));
+      }
+
+      if (samples.length < 3) return null;
+
+      const avg = new Float32Array(samples[0].length);
+      for (let i = 0; i < avg.length; i++) {
+        avg[i] = (samples[0][i] + samples[1][i] + samples[2][i]) / 3;
+      }
+      return Array.from(avg);
+    }
+
+    /* ---------- PASSWORD-PROTECTED DELETE SYSTEM ---------- */
+    let pendingDeleteAction = null;
+
+    function promptDeleteAction(type, id, displayName) {
+      pendingDeleteAction = { type: type, id: id };
+      $("deleteConfirmTargetText").textContent = "Delete: " + displayName;
+      $("deleteConfirmPin").value = "";
+      $("deleteConfirmError").classList.add("d-none");
+
+      const modal = new bootstrap.Modal($("confirmDeleteModal"));
+      modal.show();
+      setTimeout(() => $("deleteConfirmPin").focus(), 350);
+    }
+
+    async function executeProtectedDelete() {
+      if (!pendingDeleteAction) return;
+      const pin = $("deleteConfirmPin").value.trim();
+      const errEl = $("deleteConfirmError");
+      const btn = $("btnConfirmDeleteExec");
+
+      if (!pin) {
+        errEl.textContent = "Please enter the Supervisor PIN.";
+        errEl.classList.remove("d-none");
+        $("deleteConfirmPin").focus();
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i>Verifying...';
+      errEl.classList.add("d-none");
+
+      try {
+        const res = await fetchDashboardFromServer(pin);
+        if (!res || !res.success) {
+          errEl.textContent = (res && res.message) || "Wrong Supervisor PIN! Deletion blocked.";
+          errEl.classList.remove("d-none");
+          feedback(false);
+          return;
+        }
+
+        const act = pendingDeleteAction;
+        if (act.type === "EMP_ONE") {
+          const updated = getEnrolledEmployees().filter(e => e.id !== act.id);
+          saveEnrolledEmployees(updated);
+          $("enrollStatus").className = "small fw-bold text-success mb-2";
+          $("enrollStatus").textContent = "Deleted Face Bio for ID " + act.id + ".";
+          $("enrollStatus").classList.remove("d-none");
+        } else if (act.type === "EMP_ALL") {
+          saveEnrolledEmployees([]);
+          $("enrollStatus").className = "small fw-bold text-success mb-2";
+          $("enrollStatus").textContent = "All enrolled employee faces cleared.";
+          $("enrollStatus").classList.remove("d-none");
+        } else if (act.type === "SUP_ONE") {
+          const updated = getSavedFaceProfiles().filter(p => p.id !== act.id);
+          saveFaceProfiles(updated);
+          if (!updated.length) {
+            stopFaceCamera();
+            $("faceCameraSection").classList.add("d-none");
+          }
+          $("pinError").textContent = "Supervisor face deleted.";
+          $("pinError").classList.remove("d-none");
+        } else if (act.type === "SUP_ALL") {
+          stopFaceCamera();
+          saveFaceProfiles([]);
+          $("faceCameraSection").classList.add("d-none");
+          $("pinPromptLabel").textContent = "Enter Supervisor PIN to open or register a Face";
+          $("pinError").textContent = "All supervisor faces removed.";
+          $("pinError").classList.remove("d-none");
+        }
+
+        await pushFacesToCloud(pin);
+        feedback(true);
+        pendingDeleteAction = null;
+        bootstrap.Modal.getInstance($("confirmDeleteModal")).hide();
+      } catch (e) {
+        errEl.textContent = "Connection error. Check internet.";
+        errEl.classList.remove("d-none");
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-trash-can me-1"></i>Verify PIN & Delete';
+      }
     }
 
     /* ---------- EMPLOYEE FACE BIOMETRIC STORAGE & ENROLLMENT ---------- */
@@ -654,7 +840,7 @@
       listEl.innerHTML = list.map(emp =>
         '<div class="list-group-item px-1 py-1 d-flex justify-content-between align-items-center bg-transparent">' +
           '<span><strong class="text-danger">' + esc(emp.id) + '</strong> - ' + esc(emp.name) + '</span>' +
-          '<button type="button" class="btn btn-outline-danger btn-sm py-0 px-2" onclick="deleteSingleEmployeeFace(\'' + esc(emp.id) + '\')" title="Requires PIN">' +
+          '<button type="button" class="btn btn-outline-danger btn-sm py-0 px-2" onclick="promptDeleteAction(\'EMP_ONE\', \'' + esc(emp.id) + '\', \'' + esc(emp.name + ' (' + emp.id + ')') + '\')" title="Requires Password">' +
             '<i class="fa-solid fa-trash-can"></i>' +
           '</button>' +
         '</div>'
@@ -679,6 +865,13 @@
         return;
       }
 
+      const existingList = getEnrolledEmployees();
+      const alreadyExists = existingList.find(e => e.id === empId);
+      if (alreadyExists) {
+        const okOverwrite = confirm("May naka-register nang Face Bio para sa ID " + empId + " (" + alreadyExists.name + "). Sigurado ka bang papalitan mo ito?");
+        if (!okOverwrite) return;
+      }
+
       $("btnCaptureEmpFace").disabled = true;
       isEnrollingNow = true;
       statusEl.className = "small fw-bold text-primary mb-2";
@@ -686,7 +879,6 @@
       statusEl.classList.remove("d-none");
 
       try {
-        // 1. Verify PIN via dashboard endpoint at kunin ang employee directory
         const [dashRes, loaded] = await Promise.all([
           fetchDashboardFromServer(pin),
           loadFaceModels()
@@ -699,7 +891,6 @@
         }
         if (!loaded) throw new Error("Face AI library failed to load.");
 
-        // 2. Siguraduhing nakabukas ang front camera
         if (!cameraOn) {
           facing = "user";
           camId = "";
@@ -707,46 +898,38 @@
         }
 
         const empName = empCache[empId] || ("Employee " + empId);
-        statusEl.innerHTML = '<i class="fa-solid fa-face-smile me-1 text-warning"></i>Itapat ang mukha ni <b>' + esc(empName) + '</b> sa bilog...';
-        $("bioOverlayText").textContent = "Enrolling: " + empName;
+        statusEl.innerHTML = '<i class="fa-solid fa-face-smile me-1 text-warning"></i>Huwag gumalaw: kinukunan si <b>' + esc(empName) + '</b> (0/3)...';
+        $("bioOverlayText").textContent = "Enrolling (0/3): " + empName;
         $("bioFaceGuide").style.borderColor = "#f59e0b";
 
-        const vid = $("bioVideo");
-        const opts = new faceapi.TinyFaceDetectorOptions({ inputSize: 160, scoreThreshold: 0.35 });
+        const avgDescriptor = await captureAveragedDescriptor($("bioVideo"), (step, total) => {
+          statusEl.innerHTML = '<i class="fa-solid fa-face-smile me-1 text-warning"></i>Kinukunan si <b>' + esc(empName) + '</b> (' + step + '/' + total + ')...';
+          $("bioOverlayText").textContent = "Enrolling (" + step + "/" + total + "): " + empName;
+        });
 
-        let attempts = 0;
-        let captured = false;
+        if (avgDescriptor) {
+          const list = getEnrolledEmployees().filter(e => e.id !== empId);
+          list.push({
+            id: empId,
+            name: empName,
+            descriptor: avgDescriptor
+          });
+          saveEnrolledEmployees(list);
+          pushFacesToCloud(pin);
 
-        while (attempts < 55) {
-          attempts++;
-          const det = await faceapi.detectSingleFace(vid, opts).withFaceLandmarks(true).withFaceDescriptor();
-          if (det && det.descriptor) {
-            const list = getEnrolledEmployees().filter(e => e.id !== empId);
-            list.push({
-              id: empId,
-              name: empName,
-              descriptor: Array.from(det.descriptor)
-            });
-            saveEnrolledEmployees(list);
+          $("bioFaceGuide").style.borderColor = "#16a34a";
+          $("bioOverlayText").textContent = "Enrolled: " + empName;
+          statusEl.className = "small fw-bold text-success mb-2";
+          statusEl.innerHTML = '<i class="fa-solid fa-circle-check me-1"></i>Na-save ang HD Face Bio ni <b>' + esc(empName) + ' (' + esc(empId) + ')</b>!';
+          feedback(true);
+          speakLoud("Enrolled");
 
-            $("bioFaceGuide").style.borderColor = "#16a34a";
-            $("bioOverlayText").textContent = "Enrolled: " + empName;
-            statusEl.className = "small fw-bold text-success mb-2";
-            statusEl.innerHTML = '<i class="fa-solid fa-circle-check me-1"></i>Na-save na ang Face Bio ni <b>' + esc(empName) + ' (' + esc(empId) + ')</b>!';
-            feedback(true);
-            speakLoud("Enrolled");
-
-            $("enrollEmpId").value = "";
-            captured = true;
-            break;
-          }
-          await new Promise(r => setTimeout(r, 120));
-        }
-
-        if (!captured) {
+          $("enrollEmpId").value = "";
+          $("enrollPin").value = "";
+        } else {
           $("bioFaceGuide").style.borderColor = "#dc2626";
           statusEl.className = "small fw-bold text-danger mb-2";
-          statusEl.textContent = "Walang nakitang mukha. Siguraduhing maliwanag at subukan ulit.";
+          statusEl.textContent = "Hindi nakakuha ng 3 malinaw na kuha. Siguraduhing maliwanag at nakaharap sa camera.";
         }
       } catch (e) {
         statusEl.className = "small fw-bold text-danger mb-2";
@@ -760,69 +943,6 @@
             $("bioOverlayText").textContent = "Ready - Look at Camera";
           }
         }, 1500);
-      }
-    }
-
-    async function deleteSingleEmployeeFace(empId) {
-      const pin = $("enrollPin").value.trim();
-      const statusEl = $("enrollStatus");
-      if (!pin) {
-        statusEl.className = "small fw-bold text-danger mb-2";
-        statusEl.textContent = "I-type muna ang Supervisor PIN sa itaas bago mag-delete ng Employee Face.";
-        statusEl.classList.remove("d-none");
-        $("enrollPin").focus();
-        return;
-      }
-
-      try {
-        const res = await fetchDashboardFromServer(pin);
-        if (!res || !res.success) {
-          statusEl.className = "small fw-bold text-danger mb-2";
-          statusEl.textContent = "Maling Supervisor PIN. Hindi mabubura ang record.";
-          statusEl.classList.remove("d-none");
-          return;
-        }
-        const updated = getEnrolledEmployees().filter(e => e.id !== empId);
-        saveEnrolledEmployees(updated);
-        statusEl.className = "small fw-bold text-success mb-2";
-        statusEl.textContent = "Nabura na ang Face Bio ng ID " + empId + ".";
-        statusEl.classList.remove("d-none");
-        feedback(true);
-      } catch (e) {
-        statusEl.className = "small fw-bold text-danger mb-2";
-        statusEl.textContent = "Connection error. Check internet.";
-        statusEl.classList.remove("d-none");
-      }
-    }
-
-    async function deleteAllEmployeeFaces() {
-      const pin = $("enrollPin").value.trim();
-      const statusEl = $("enrollStatus");
-      if (!pin) {
-        statusEl.className = "small fw-bold text-danger mb-2";
-        statusEl.textContent = "I-type muna ang Supervisor PIN sa itaas bago burahin lahat.";
-        statusEl.classList.remove("d-none");
-        $("enrollPin").focus();
-        return;
-      }
-
-      try {
-        const res = await fetchDashboardFromServer(pin);
-        if (!res || !res.success) {
-          statusEl.className = "small fw-bold text-danger mb-2";
-          statusEl.textContent = "Maling Supervisor PIN.";
-          statusEl.classList.remove("d-none");
-          return;
-        }
-        saveEnrolledEmployees([]);
-        statusEl.className = "small fw-bold text-success mb-2";
-        statusEl.textContent = "Nabura na lahat ng enrolled employee faces.";
-        statusEl.classList.remove("d-none");
-        feedback(true);
-      } catch (e) {
-        statusEl.className = "small fw-bold text-danger mb-2";
-        statusEl.textContent = "Connection error.";
-        statusEl.classList.remove("d-none");
       }
     }
 
@@ -844,8 +964,8 @@
         if (!loaded) throw new Error("Face AI library failed to load.");
 
         const constraints = camId
-          ? { video: { deviceId: { exact: camId }, width: { ideal: 320 }, height: { ideal: 320 } }, audio: false }
-          : { video: { facingMode: facing, width: { ideal: 320 }, height: { ideal: 320 } }, audio: false };
+          ? { video: { deviceId: { exact: camId }, width: { ideal: 480 }, height: { ideal: 480 } }, audio: false }
+          : { video: { facingMode: facing, width: { ideal: 480 }, height: { ideal: 480 } }, audio: false };
 
         bioStream = await navigator.mediaDevices.getUserMedia(constraints);
         const vid = $("bioVideo");
@@ -874,14 +994,17 @@
     async function startBioRecognitionLoop() {
       bioLoopActive = true;
       const vid = $("bioVideo");
-      const opts = new faceapi.TinyFaceDetectorOptions({ inputSize: 160, scoreThreshold: 0.35 });
+      const opts = new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.55 });
+
+      let streakEmpId = "";
+      let streakCount = 0;
 
       while (bioLoopActive && cameraOn) {
         if (!isEnrollingNow && !busy && vid.readyState >= 2) {
           const enrolled = getEnrolledEmployees();
           if (enrolled.length > 0) {
             try {
-              const det = await faceapi.detectSingleFace(vid, opts).withFaceLandmarks(true).withFaceDescriptor();
+              const det = await faceapi.detectSingleFace(vid, opts).withFaceLandmarks().withFaceDescriptor();
               if (det && det.descriptor) {
                 let bestEmp = null;
                 let bestDist = 999;
@@ -894,28 +1017,47 @@
                   }
                 }
 
-                if (bestEmp && bestDist < 0.58) {
-                  $("bioFaceGuide").style.borderColor = "#16a34a";
-                  $("bioOverlayText").textContent = "Matched: " + bestEmp.name + " (" + bestEmp.id + ")";
-                  await processEmployeeId(bestEmp.id, true);
-                  setTimeout(() => {
-                    if (cameraOn && !isEnrollingNow) {
-                      $("bioFaceGuide").style.borderColor = "rgba(255,255,255,0.75)";
-                      $("bioOverlayText").textContent = "Ready - Look at Camera";
-                    }
-                  }, 2000);
+                // STRICT THRESHOLD + 2 CONSECUTIVE FRAMES CONFIRMATION
+                if (bestEmp && bestDist <= STRICT_MATCH_THRESHOLD) {
+                  if (streakEmpId === bestEmp.id) {
+                    streakCount++;
+                  } else {
+                    streakEmpId = bestEmp.id;
+                    streakCount = 1;
+                  }
+
+                  if (streakCount >= 2) {
+                    streakEmpId = "";
+                    streakCount = 0;
+                    $("bioFaceGuide").style.borderColor = "#16a34a";
+                    $("bioOverlayText").textContent = "Matched: " + bestEmp.name + " (" + bestEmp.id + ")";
+                    await processEmployeeId(bestEmp.id, true);
+                    setTimeout(() => {
+                      if (cameraOn && !isEnrollingNow) {
+                        $("bioFaceGuide").style.borderColor = "rgba(255,255,255,0.75)";
+                        $("bioOverlayText").textContent = "Ready - Look at Camera";
+                      }
+                    }, 2000);
+                  } else {
+                    $("bioFaceGuide").style.borderColor = "#3b82f6";
+                    $("bioOverlayText").textContent = "Verifying " + bestEmp.name + "...";
+                  }
                 } else {
-                  $("bioFaceGuide").style.borderColor = "#f59e0b";
-                  $("bioOverlayText").textContent = "Unrecognized Face (" + Math.max(0, Math.round((1 - bestDist) * 100)) + "%)";
+                  streakEmpId = "";
+                  streakCount = 0;
+                  $("bioFaceGuide").style.borderColor = "#dc2626";
+                  $("bioOverlayText").textContent = "Unknown Face (Not Enrolled)";
                 }
               } else {
+                streakEmpId = "";
+                streakCount = 0;
                 $("bioFaceGuide").style.borderColor = "rgba(255,255,255,0.75)";
                 $("bioOverlayText").textContent = "Ready - Look at Camera";
               }
             } catch (e) {}
           }
         }
-        await new Promise(r => setTimeout(r, 150));
+        await new Promise(r => setTimeout(r, 140));
       }
     }
 
@@ -1199,7 +1341,7 @@
       listEl.innerHTML = profiles.map(p =>
         '<div class="list-group-item px-1 py-1 d-flex justify-content-between align-items-center bg-transparent">' +
           '<span><i class="fa-solid fa-user-check text-success me-1"></i><strong>' + esc(p.name) + '</strong></span>' +
-          '<button type="button" class="btn btn-outline-danger btn-sm py-0 px-2" onclick="removeSingleFace(\'' + esc(p.id) + '\')" title="Requires PIN">' +
+          '<button type="button" class="btn btn-outline-danger btn-sm py-0 px-2" onclick="promptDeleteAction(\'SUP_ONE\', \'' + esc(p.id) + '\', \'' + esc(p.name) + '\')" title="Requires Password">' +
             '<i class="fa-solid fa-trash-can"></i>' +
           '</button>' +
         '</div>'
@@ -1219,7 +1361,7 @@
     async function startFaceCamera() {
       const vid = $("faceVideo");
       faceStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "user", width: { ideal: 256 }, height: { ideal: 256 } },
+        video: { facingMode: "user", width: { ideal: 480 }, height: { ideal: 480 } },
         audio: false
       });
       vid.srcObject = faceStream;
@@ -1299,47 +1441,41 @@
         if (!loaded) throw new Error("Face AI library failed to load. Check internet.");
 
         await startFaceCamera();
-        $("faceStatusText").innerHTML = '<i class="fa-solid fa-face-smile me-1 text-warning"></i>Itapat ang mukha ni <b>' + esc(labelName) + '</b> sa bilog...';
+        $("faceStatusText").innerHTML = '<i class="fa-solid fa-face-smile me-1 text-warning"></i>Huwag gumalaw: kinukunan si <b>' + esc(labelName) + '</b> (0/3)...';
 
-        faceLoopActive = true;
-        const vid = $("faceVideo");
-        const opts = new faceapi.TinyFaceDetectorOptions({ inputSize: 160, scoreThreshold: 0.35 });
+        const avgDescriptor = await captureAveragedDescriptor($("faceVideo"), (step, total) => {
+          $("faceStatusText").innerHTML = '<i class="fa-solid fa-face-smile me-1 text-warning"></i>Kinukunan si <b>' + esc(labelName) + '</b> (' + step + '/' + total + ')...';
+        });
 
-        let attempts = 0;
-        while (faceLoopActive && attempts < 50) {
-          attempts++;
-          const det = await faceapi.detectSingleFace(vid, opts).withFaceLandmarks(true).withFaceDescriptor();
-          if (det && det.descriptor) {
-            const updatedList = getSavedFaceProfiles();
-            updatedList.push({
-              id: "sup_" + Date.now(),
-              name: labelName,
-              descriptor: Array.from(det.descriptor),
-              pin: entered
-            });
-            saveFaceProfiles(updatedList);
+        if (avgDescriptor) {
+          const updatedList = getSavedFaceProfiles();
+          updatedList.push({
+            id: "sup_" + Date.now(),
+            name: labelName,
+            descriptor: avgDescriptor,
+            pin: entered
+          });
+          saveFaceProfiles(updatedList);
+          pushFacesToCloud(entered);
 
-            $("faceCamWrap").style.borderColor = "#16a34a";
-            $("faceStatusText").className = "fw-bold text-success small mb-2";
-            $("faceStatusText").innerHTML = '<i class="fa-solid fa-circle-check me-1"></i>' + esc(labelName) + ' Registered! Opening...';
-            feedback(true);
+          $("faceCamWrap").style.borderColor = "#16a34a";
+          $("faceStatusText").className = "fw-bold text-success small mb-2";
+          $("faceStatusText").innerHTML = '<i class="fa-solid fa-circle-check me-1"></i>' + esc(labelName) + ' Registered! Opening...';
+          feedback(true);
 
-            await new Promise(r => setTimeout(r, 450));
-            stopFaceCamera();
+          $("dashPinInput").value = "";
+          $("faceLabelInput").value = "";
+          await new Promise(r => setTimeout(r, 450));
+          stopFaceCamera();
 
-            dashPin = entered;
-            dashData = res;
-            timeOffsetMs = res.serverNowMs - Date.now();
-            bootstrap.Modal.getInstance($("pinModal")).hide();
-            openDashboardModal(true);
-            return;
-          }
-          await new Promise(r => setTimeout(r, 120));
-        }
-
-        if (faceLoopActive) {
+          dashPin = entered;
+          dashData = res;
+          timeOffsetMs = res.serverNowMs - Date.now();
+          bootstrap.Modal.getInstance($("pinModal")).hide();
+          openDashboardModal(true);
+        } else {
           $("faceStatusText").className = "fw-bold text-danger small mb-2";
-          $("faceStatusText").textContent = "Walang nakitang mukha. Siguraduhing maliwanag at subukan ulit.";
+          $("faceStatusText").textContent = "Hindi nakakuha ng 3 malinaw na kuha. Siguraduhing maliwanag at subukan ulit.";
           stopFaceCamera();
         }
       } catch (e) {
@@ -1376,14 +1512,16 @@
         }));
 
         const vid = $("faceVideo");
-        const opts = new faceapi.TinyFaceDetectorOptions({ inputSize: 160, scoreThreshold: 0.35 });
+        const opts = new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.55 });
 
         faceLoopActive = true;
         let attempts = 0;
+        let streakName = "";
+        let streakCount = 0;
 
         while (faceLoopActive && attempts < 65) {
           attempts++;
-          const det = await faceapi.detectSingleFace(vid, opts).withFaceLandmarks(true).withFaceDescriptor();
+          const det = await faceapi.detectSingleFace(vid, opts).withFaceLandmarks().withFaceDescriptor();
           if (det && det.descriptor) {
             let bestMatch = null;
             let bestDist = 999;
@@ -1396,33 +1534,40 @@
               }
             }
 
-            if (bestMatch && bestDist < 0.60) {
-              $("faceCamWrap").style.borderColor = "#16a34a";
-              $("faceStatusText").className = "fw-bold text-success small mb-2";
-              $("faceStatusText").innerHTML = '<i class="fa-solid fa-circle-check me-1"></i>Verified: ' + esc(bestMatch.name) + '!';
-              feedback(true);
+            if (bestMatch && bestDist <= STRICT_MATCH_THRESHOLD) {
+              if (streakName === bestMatch.name) streakCount++;
+              else { streakName = bestMatch.name; streakCount = 1; }
 
-              const res = (bestMatch.pin === defaultPin ? (await dashPromise) : null) ||
-                          (await fetchDashboardFromServer(bestMatch.pin));
-              stopFaceCamera();
+              if (streakCount >= 2) {
+                $("faceCamWrap").style.borderColor = "#16a34a";
+                $("faceStatusText").className = "fw-bold text-success small mb-2";
+                $("faceStatusText").innerHTML = '<i class="fa-solid fa-circle-check me-1"></i>Verified: ' + esc(bestMatch.name) + '!';
+                feedback(true);
 
-              if (res && res.success) {
-                dashPin = bestMatch.pin;
-                dashData = res;
-                timeOffsetMs = res.serverNowMs - Date.now();
-                bootstrap.Modal.getInstance($("pinModal")).hide();
-                openDashboardModal(true);
-              } else {
-                $("pinError").textContent = "Supervisor PIN changed on server. Enter new PIN below.";
-                $("pinError").classList.remove("d-none");
+                const res = (bestMatch.pin === defaultPin ? (await dashPromise) : null) ||
+                            (await fetchDashboardFromServer(bestMatch.pin));
+                stopFaceCamera();
+
+                if (res && res.success) {
+                  dashPin = bestMatch.pin;
+                  dashData = res;
+                  timeOffsetMs = res.serverNowMs - Date.now();
+                  bootstrap.Modal.getInstance($("pinModal")).hide();
+                  openDashboardModal(true);
+                } else {
+                  $("pinError").textContent = "Supervisor PIN changed on server. Enter new PIN below.";
+                  $("pinError").classList.remove("d-none");
+                }
+                return;
               }
-              return;
             } else {
+              streakName = "";
+              streakCount = 0;
               $("faceStatusText").className = "fw-bold text-warning small mb-2";
-              $("faceStatusText").textContent = "Scanning... (" + Math.max(0, Math.round((1 - bestDist) * 100)) + "% match)";
+              $("faceStatusText").textContent = "Unrecognized face. Look directly at camera or use PIN.";
             }
           }
-          await new Promise(r => setTimeout(r, 120));
+          await new Promise(r => setTimeout(r, 140));
         }
 
         if (faceLoopActive) {
@@ -1434,73 +1579,6 @@
         $("faceStatusText").className = "fw-bold text-danger small mb-2";
         $("faceStatusText").textContent = "Camera unavailable. Use Supervisor PIN below.";
         stopFaceCamera();
-      }
-    }
-
-    async function removeSingleFace(faceId) {
-      const entered = $("dashPinInput").value.trim();
-      if (!entered) {
-        $("pinError").textContent = "I-type muna ang Supervisor PIN sa itaas bago mag-delete ng face.";
-        $("pinError").classList.remove("d-none");
-        $("dashPinInput").focus();
-        return;
-      }
-
-      $("pinError").classList.add("d-none");
-      try {
-        const res = await fetchDashboardFromServer(entered);
-        if (!res || !res.success) {
-          $("pinError").textContent = (res && res.message) || "Maling Supervisor PIN. Hindi mabubura ang face.";
-          $("pinError").classList.remove("d-none");
-          feedback(false);
-          return;
-        }
-
-        const updated = getSavedFaceProfiles().filter(p => p.id !== faceId);
-        saveFaceProfiles(updated);
-
-        if (!updated.length) {
-          stopFaceCamera();
-          $("faceCameraSection").classList.add("d-none");
-        }
-        $("pinError").textContent = "Registered face deleted.";
-        $("pinError").classList.remove("d-none");
-        feedback(true);
-      } catch (e) {
-        $("pinError").textContent = "Connection error. Check internet before deleting.";
-        $("pinError").classList.remove("d-none");
-      }
-    }
-
-    async function removeAllFaces() {
-      const entered = $("dashPinInput").value.trim();
-      if (!entered) {
-        $("pinError").textContent = "I-type muna ang Supervisor PIN sa itaas bago burahin lahat ng saved faces.";
-        $("pinError").classList.remove("d-none");
-        $("dashPinInput").focus();
-        return;
-      }
-
-      $("pinError").classList.add("d-none");
-      try {
-        const res = await fetchDashboardFromServer(entered);
-        if (!res || !res.success) {
-          $("pinError").textContent = (res && res.message) || "Maling Supervisor PIN. Hindi mabubura ang saved faces.";
-          $("pinError").classList.remove("d-none");
-          feedback(false);
-          return;
-        }
-
-        stopFaceCamera();
-        saveFaceProfiles([]);
-        $("faceCameraSection").classList.add("d-none");
-        $("pinPromptLabel").textContent = "Enter Supervisor PIN to open or register a Face";
-        $("pinError").textContent = "All saved faces removed.";
-        $("pinError").classList.remove("d-none");
-        feedback(true);
-      } catch (e) {
-        $("pinError").textContent = "Connection error. Check internet before deleting.";
-        $("pinError").classList.remove("d-none");
       }
     }
 
@@ -1523,6 +1601,7 @@
           dashPin = entered;
           dashData = res;
           timeOffsetMs = res.serverNowMs - Date.now();
+          $("dashPinInput").value = "";
           bootstrap.Modal.getInstance($("pinModal")).hide();
           openDashboardModal(true);
         } else {
