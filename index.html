@@ -77,8 +77,8 @@
     /* Face Scan Video Box */
     .face-cam-wrap {
       position: relative;
-      width: 210px;
-      height: 210px;
+      width: 200px;
+      height: 200px;
       margin: 0 auto 10px auto;
       border-radius: 50%;
       overflow: hidden;
@@ -145,7 +145,7 @@
         <button class="btn btn-dark btn-sm fw-bold shadow-sm px-3 py-2" onclick="openDashboardAuth()">
           <i class="fa-solid fa-face-viewfinder me-1 text-warning"></i>Dashboard
         </button>
-        <div class="mt-1"><small class="badge bg-danger">v26 Fast Face Match + Dashboard</small></div>
+        <div class="mt-1"><small class="badge bg-danger">v28 Multi-Face Login + Dashboard</small></div>
       </div>
     </div>
   </header>
@@ -216,7 +216,7 @@
 
   <!-- Camera Face Recognition + PIN Prompt Modal -->
   <div class="modal fade" id="pinModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
       <div class="modal-content border-danger shadow-lg">
         <div class="modal-header bg-danger text-white py-2">
           <h6 class="modal-title orbitron mb-0"><i class="fa-solid fa-face-viewfinder me-2"></i>SUPERVISOR FACE LOGIN</h6>
@@ -234,22 +234,37 @@
           </div>
 
           <div id="pinFallbackSection">
-            <p class="small text-muted mb-2" id="pinPromptLabel">Enter Supervisor PIN to access or register Face Scan</p>
-            <input type="tel" id="dashPinInput" name="dash_pin_noconflict" autocomplete="one-time-code"
-                   class="form-control text-center fs-5 fw-bold mb-2 mx-auto" style="max-width: 240px; -webkit-text-security: disc;"
-                   placeholder="••••" inputmode="numeric" onkeydown="if(event.key==='Enter') verifyDashboardPin()">
-            <div id="pinError" class="text-danger small fw-bold mb-2 d-none"></div>
+            <p class="small text-muted mb-2" id="pinPromptLabel">Enter Supervisor PIN to open or register a Face</p>
 
-            <div class="d-grid gap-2 mx-auto" style="max-width: 280px;">
-              <button class="btn btn-danger fw-bold" id="btnUnlockDash" onclick="verifyDashboardPin()">
-                <i class="fa-solid fa-unlock me-1"></i>Open with PIN
-              </button>
-              <button class="btn btn-dark fw-bold" id="btnRegisterFace" onclick="startFaceRegistration()">
-                <i class="fa-solid fa-camera me-1 text-warning"></i>Register Face via Camera
-              </button>
-              <button class="btn btn-link btn-sm text-danger text-decoration-none d-none" id="btnResetFace" onclick="resetRegisteredFace()">
-                <i class="fa-solid fa-trash-can me-1"></i>Remove Saved Face (Re-register)
-              </button>
+            <div class="mx-auto" style="max-width: 290px;">
+              <input type="tel" id="dashPinInput" name="dash_pin_noconflict" autocomplete="one-time-code"
+                     class="form-control text-center fs-5 fw-bold mb-2" style="-webkit-text-security: disc;"
+                     placeholder="Supervisor PIN (••••)" inputmode="numeric" onkeydown="if(event.key==='Enter') verifyDashboardPin()">
+
+              <input type="text" id="faceLabelInput" class="form-control text-center fw-bold mb-2"
+                     placeholder="Name / Label (e.g. Sup. Juan)">
+
+              <div id="pinError" class="text-danger small fw-bold mb-2 d-none"></div>
+
+              <div class="d-grid gap-2">
+                <button class="btn btn-danger fw-bold" id="btnUnlockDash" onclick="verifyDashboardPin()">
+                  <i class="fa-solid fa-unlock me-1"></i>Open with PIN
+                </button>
+                <button class="btn btn-dark fw-bold" id="btnRegisterFace" onclick="startFaceRegistration()">
+                  <i class="fa-solid fa-user-plus me-1 text-warning"></i>Add / Register Face via Camera
+                </button>
+              </div>
+            </div>
+
+            <!-- Registered Faces List (Protected Delete) -->
+            <div id="registeredFacesBox" class="mt-3 pt-2 border-top text-start mx-auto d-none" style="max-width: 310px;">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="small fw-bold text-dark"><i class="fa-solid fa-users-viewfinder me-1 text-danger"></i>Registered Faces (<span id="faceCountBadge">0</span>)</span>
+                <button class="btn btn-link btn-sm text-danger p-0 text-decoration-none fw-bold" onclick="removeAllFaces()">
+                  Remove All (PIN)
+                </button>
+              </div>
+              <div id="registeredFacesList" class="list-group list-group-flush small"></div>
             </div>
           </div>
         </div>
@@ -376,7 +391,7 @@
 
   <script>
     // PALITAN ITO NG BAGONG APPS SCRIPT /exec URL MO KAPAG NAG-NEW DEPLOYMENT KA
-    const API_URL = "https://script.google.com/macros/s/AKfycbycj5Ravc2ofjgbhVN7QZ1AltqP3CU8LlzZlgFNDOwx961mOg0Pm8STheRQo5sxN3t3Yg/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycbwEJc9MxSZpB9kEIu0uiDgMp9_ruKAS3SXmuERQIhC8bLSMdOUkkabHgB1LC7IWeXKyzw/exec";
 
     let scanner = null;
     let fileScanner = null;
@@ -433,7 +448,6 @@
 
     window.addEventListener("load", function () {
       preloadEmployees();
-      // I-preload na agad ang Face AI models sa background para 0-second wait sa Dashboard
       setTimeout(() => { loadFaceModels().catch(() => {}); }, 1200);
 
       const ua = navigator.userAgent || "";
@@ -842,7 +856,7 @@
       finish();
     }
 
-    /* ---------- FAST CAMERA FACE RECOGNITION + SUPERVISOR DASHBOARD ---------- */
+    /* ---------- MULTI-USER FACE RECOGNITION + SUPERVISOR DASHBOARD ---------- */
     let dashPin = "";
     let dashData = null;
     let dashFilter = "ALL";
@@ -855,6 +869,62 @@
     let faceModelsLoadingPromise = null;
     let faceStream = null;
     let faceLoopActive = false;
+
+    // Kunin ang listahan ng lahat ng naka-save na mukha (with backward compatibility kung may luma)
+    function getSavedFaceProfiles() {
+      let list = [];
+      try {
+        const raw = localStorage.getItem("supFaceProfiles");
+        if (raw) list = JSON.parse(raw);
+      } catch (e) {}
+
+      // Migrate single face kung meron pa sa lumang storage key
+      try {
+        const oldDesc = localStorage.getItem("supFaceDescriptor");
+        const oldPin = localStorage.getItem("supFacePin");
+        if (oldDesc && oldPin) {
+          list.push({
+            id: "sup_" + Date.now(),
+            name: "Supervisor 1",
+            descriptor: JSON.parse(oldDesc),
+            pin: oldPin
+          });
+          localStorage.setItem("supFaceProfiles", JSON.stringify(list));
+          localStorage.removeItem("supFaceDescriptor");
+          localStorage.removeItem("supFacePin");
+        }
+      } catch (e) {}
+
+      return Array.isArray(list) ? list : [];
+    }
+
+    function saveFaceProfiles(list) {
+      localStorage.setItem("supFaceProfiles", JSON.stringify(list));
+      renderSavedFacesList();
+    }
+
+    function renderSavedFacesList() {
+      const profiles = getSavedFaceProfiles();
+      const box = $("registeredFacesBox");
+      const listEl = $("registeredFacesList");
+      $("faceCountBadge").textContent = profiles.length;
+
+      if (!profiles.length) {
+        box.classList.add("d-none");
+        listEl.innerHTML = "";
+        return;
+      }
+
+      box.classList.remove("d-none");
+      listEl.innerHTML = profiles.map(p =>
+        '<div class="list-group-item px-1 py-1 d-flex justify-content-between align-items-center bg-transparent">' +
+          '<span><i class="fa-solid fa-user-check text-success me-1"></i><strong>' + esc(p.name) + '</strong></span>' +
+          '<button type="button" class="btn btn-outline-danger btn-sm py-0 px-2" onclick="removeSingleFace(\'' + esc(p.id) + '\')" title="Requires PIN">' +
+            '<i class="fa-solid fa-trash-can"></i>' +
+          '</button>' +
+        '</div>'
+      ).join("");
+    }
 
     function loadFaceModels() {
       if (faceModelsReady) return Promise.resolve(true);
@@ -903,10 +973,11 @@
 
       dashPin = "";
       $("dashPinInput").value = "";
+      $("faceLabelInput").value = "";
       $("pinError").classList.add("d-none");
 
-      const savedDesc = localStorage.getItem("supFaceDescriptor");
-      const savedFacePin = localStorage.getItem("supFacePin");
+      const profiles = getSavedFaceProfiles();
+      renderSavedFacesList();
 
       const modalEl = $("pinModal");
       const modal = new bootstrap.Modal(modalEl);
@@ -920,22 +991,18 @@
         }
       }, { once: true });
 
-      if (savedDesc && savedFacePin) {
+      if (profiles.length > 0) {
         $("faceCameraSection").classList.remove("d-none");
-        $("btnRegisterFace").classList.add("d-none");
-        $("btnResetFace").classList.remove("d-none");
-        $("pinPromptLabel").textContent = "Look at camera to unlock — or use backup PIN";
-        startFaceVerification(JSON.parse(savedDesc), savedFacePin);
+        $("pinPromptLabel").textContent = "Look at camera to unlock — or enter PIN to open / add another face";
+        startFaceVerification(profiles);
       } else {
         $("faceCameraSection").classList.add("d-none");
-        $("btnRegisterFace").classList.remove("d-none");
-        $("btnResetFace").classList.add("d-none");
-        $("pinPromptLabel").textContent = "Enter Supervisor PIN to access or register Face Scan";
+        $("pinPromptLabel").textContent = "Enter Supervisor PIN to open or register a Face";
         setTimeout(() => $("dashPinInput").focus(), 400);
       }
     }
 
-    // 1. Register Face (Fast 160px detector)
+    // 1. Add / Register New Supervisor Face
     async function startFaceRegistration() {
       const entered = $("dashPinInput").value.trim();
       if (!entered) {
@@ -944,6 +1011,12 @@
         $("dashPinInput").focus();
         return;
       }
+
+      // Stop muna kung tumatakbo ang verification loop
+      stopFaceCamera();
+
+      const existing = getSavedFaceProfiles();
+      const labelName = ($("faceLabelInput").value || "").trim() || ("Supervisor " + (existing.length + 1));
 
       $("btnRegisterFace").disabled = true;
       $("pinError").classList.add("d-none");
@@ -959,7 +1032,7 @@
         ]);
 
         if (!res || !res.success) {
-          $("faceCameraSection").classList.add("d-none");
+          if (!existing.length) $("faceCameraSection").classList.add("d-none");
           $("pinError").textContent = (res && res.message) || "Wrong Supervisor PIN.";
           $("pinError").classList.remove("d-none");
           return;
@@ -967,11 +1040,10 @@
         if (!loaded) throw new Error("Face AI library failed to load. Check internet.");
 
         await startFaceCamera();
-        $("faceStatusText").innerHTML = '<i class="fa-solid fa-face-smile me-1 text-warning"></i>Itapat ang mukha sa bilog...';
+        $("faceStatusText").innerHTML = '<i class="fa-solid fa-face-smile me-1 text-warning"></i>Itapat ang mukha ni <b>' + esc(labelName) + '</b> sa bilog...';
 
         faceLoopActive = true;
         const vid = $("faceVideo");
-        // Fast inputSize: 160 para mabilis sa lahat ng phone
         const opts = new faceapi.TinyFaceDetectorOptions({ inputSize: 160, scoreThreshold: 0.35 });
 
         let attempts = 0;
@@ -979,16 +1051,21 @@
           attempts++;
           const det = await faceapi.detectSingleFace(vid, opts).withFaceLandmarks(true).withFaceDescriptor();
           if (det && det.descriptor) {
-            const descArray = Array.from(det.descriptor);
-            localStorage.setItem("supFaceDescriptor", JSON.stringify(descArray));
-            localStorage.setItem("supFacePin", entered);
+            const updatedList = getSavedFaceProfiles();
+            updatedList.push({
+              id: "sup_" + Date.now(),
+              name: labelName,
+              descriptor: Array.from(det.descriptor),
+              pin: entered
+            });
+            saveFaceProfiles(updatedList);
 
             $("faceCamWrap").style.borderColor = "#16a34a";
             $("faceStatusText").className = "fw-bold text-success small mb-2";
-            $("faceStatusText").innerHTML = '<i class="fa-solid fa-circle-check me-1"></i>Face Registered! Opening Dashboard...';
+            $("faceStatusText").innerHTML = '<i class="fa-solid fa-circle-check me-1"></i>' + esc(labelName) + ' Registered! Opening...';
             feedback(true);
 
-            await new Promise(r => setTimeout(r, 400));
+            await new Promise(r => setTimeout(r, 450));
             stopFaceCamera();
 
             dashPin = entered;
@@ -1007,7 +1084,7 @@
           stopFaceCamera();
         }
       } catch (e) {
-        $("faceCameraSection").classList.add("d-none");
+        if (!existing.length) $("faceCameraSection").classList.add("d-none");
         $("pinError").textContent = "Camera/AI Error: " + (e.message || "Allow camera permission in Chrome/Safari.");
         $("pinError").classList.remove("d-none");
         stopFaceCamera();
@@ -1016,49 +1093,63 @@
       }
     }
 
-    // 2. Fast Face Verification (Sabay ang camera start, AI check, at dashboard fetch)
-    async function startFaceVerification(savedDescArray, savedPin) {
+    // 2. Verify Against ALL Registered Faces
+    async function startFaceVerification(profiles) {
       $("faceCamWrap").style.borderColor = "#dc2626";
       $("faceStatusText").className = "fw-bold text-primary small mb-2";
       $("faceStatusText").innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i>Opening face camera...';
 
       try {
-        // I-start ang camera at AI models nang sabay
         const [loaded] = await Promise.all([
           loadFaceModels(),
           startFaceCamera()
         ]);
         if (!loaded) throw new Error("AI models not loaded.");
 
-        // I-preload na rin ang dashboard data habang ini-scan ang mukha para zero-delay pag-unlock
-        const dashPromise = fetchDashboardFromServer(savedPin).catch(() => null);
+        const defaultPin = profiles[profiles.length - 1].pin;
+        const dashPromise = fetchDashboardFromServer(defaultPin).catch(() => null);
 
-        $("faceStatusText").innerHTML = '<i class="fa-solid fa-face-viewfinder me-1 text-danger"></i>Scanning your face...';
+        $("faceStatusText").innerHTML = '<i class="fa-solid fa-face-viewfinder me-1 text-danger"></i>Scanning face (' + profiles.length + ' registered)...';
 
-        const savedFloat = new Float32Array(savedDescArray);
+        const prepared = profiles.map(p => ({
+          name: p.name,
+          pin: p.pin,
+          floatDesc: new Float32Array(p.descriptor)
+        }));
+
         const vid = $("faceVideo");
         const opts = new faceapi.TinyFaceDetectorOptions({ inputSize: 160, scoreThreshold: 0.35 });
 
         faceLoopActive = true;
         let attempts = 0;
 
-        while (faceLoopActive && attempts < 60) {
+        while (faceLoopActive && attempts < 65) {
           attempts++;
           const det = await faceapi.detectSingleFace(vid, opts).withFaceLandmarks(true).withFaceDescriptor();
           if (det && det.descriptor) {
-            const distance = faceapi.euclideanDistance(savedFloat, det.descriptor);
-            // 0.60 threshold para mabilis makilala kahit mag-iba ang ilaw o anggulo
-            if (distance < 0.60) {
+            let bestMatch = null;
+            let bestDist = 999;
+
+            for (let i = 0; i < prepared.length; i++) {
+              const d = faceapi.euclideanDistance(prepared[i].floatDesc, det.descriptor);
+              if (d < bestDist) {
+                bestDist = d;
+                bestMatch = prepared[i];
+              }
+            }
+
+            if (bestMatch && bestDist < 0.60) {
               $("faceCamWrap").style.borderColor = "#16a34a";
               $("faceStatusText").className = "fw-bold text-success small mb-2";
-              $("faceStatusText").innerHTML = '<i class="fa-solid fa-circle-check me-1"></i>Verified! Opening...';
+              $("faceStatusText").innerHTML = '<i class="fa-solid fa-circle-check me-1"></i>Verified: ' + esc(bestMatch.name) + '!';
               feedback(true);
 
-              const res = (await dashPromise) || (await fetchDashboardFromServer(savedPin));
+              const res = (bestMatch.pin === defaultPin ? (await dashPromise) : null) ||
+                          (await fetchDashboardFromServer(bestMatch.pin));
               stopFaceCamera();
 
               if (res && res.success) {
-                dashPin = savedPin;
+                dashPin = bestMatch.pin;
                 dashData = res;
                 timeOffsetMs = res.serverNowMs - Date.now();
                 bootstrap.Modal.getInstance($("pinModal")).hide();
@@ -1070,7 +1161,7 @@
               return;
             } else {
               $("faceStatusText").className = "fw-bold text-warning small mb-2";
-              $("faceStatusText").textContent = "Look straight at the camera (" + Math.round((1 - distance) * 100) + "% match)...";
+              $("faceStatusText").textContent = "Scanning... (" + Math.max(0, Math.round((1 - bestDist) * 100)) + "% match)";
             }
           }
           await new Promise(r => setTimeout(r, 120));
@@ -1078,7 +1169,7 @@
 
         if (faceLoopActive) {
           $("faceStatusText").className = "fw-bold text-danger small mb-2";
-          $("faceStatusText").textContent = "Face not matched. Tap 'Remove Saved Face' to re-register in better lighting, or use PIN below.";
+          $("faceStatusText").textContent = "Face not recognized. Enter Supervisor PIN below to open or add your face.";
           stopFaceCamera();
         }
       } catch (e) {
@@ -1088,16 +1179,73 @@
       }
     }
 
-    function resetRegisteredFace() {
-      stopFaceCamera();
-      localStorage.removeItem("supFaceDescriptor");
-      localStorage.removeItem("supFacePin");
-      $("faceCameraSection").classList.add("d-none");
-      $("btnResetFace").classList.add("d-none");
-      $("btnRegisterFace").classList.remove("d-none");
-      $("pinPromptLabel").textContent = "Enter Supervisor PIN to access or register Face Scan";
-      $("pinError").textContent = "Saved face removed. Enter PIN and tap Register Face.";
-      $("pinError").classList.remove("d-none");
+    // 3. Remove Single Face (Requires Supervisor PIN)
+    async function removeSingleFace(faceId) {
+      const entered = $("dashPinInput").value.trim();
+      if (!entered) {
+        $("pinError").textContent = "I-type muna ang Supervisor PIN sa itaas bago mag-delete ng face.";
+        $("pinError").classList.remove("d-none");
+        $("dashPinInput").focus();
+        return;
+      }
+
+      $("pinError").classList.add("d-none");
+      try {
+        const res = await fetchDashboardFromServer(entered);
+        if (!res || !res.success) {
+          $("pinError").textContent = (res && res.message) || "Maling Supervisor PIN. Hindi mabubura ang face.";
+          $("pinError").classList.remove("d-none");
+          feedback(false);
+          return;
+        }
+
+        const updated = getSavedFaceProfiles().filter(p => p.id !== faceId);
+        saveFaceProfiles(updated);
+
+        if (!updated.length) {
+          stopFaceCamera();
+          $("faceCameraSection").classList.add("d-none");
+        }
+        $("pinError").textContent = "Registered face deleted.";
+        $("pinError").classList.remove("d-none");
+        feedback(true);
+      } catch (e) {
+        $("pinError").textContent = "Connection error. Check internet before deleting.";
+        $("pinError").classList.remove("d-none");
+      }
+    }
+
+    // 4. Remove ALL Faces (Requires Supervisor PIN)
+    async function removeAllFaces() {
+      const entered = $("dashPinInput").value.trim();
+      if (!entered) {
+        $("pinError").textContent = "I-type muna ang Supervisor PIN sa itaas bago burahin lahat ng saved faces.";
+        $("pinError").classList.remove("d-none");
+        $("dashPinInput").focus();
+        return;
+      }
+
+      $("pinError").classList.add("d-none");
+      try {
+        const res = await fetchDashboardFromServer(entered);
+        if (!res || !res.success) {
+          $("pinError").textContent = (res && res.message) || "Maling Supervisor PIN. Hindi mabubura ang saved faces.";
+          $("pinError").classList.remove("d-none");
+          feedback(false);
+          return;
+        }
+
+        stopFaceCamera();
+        saveFaceProfiles([]);
+        $("faceCameraSection").classList.add("d-none");
+        $("pinPromptLabel").textContent = "Enter Supervisor PIN to open or register a Face";
+        $("pinError").textContent = "All saved faces removed.";
+        $("pinError").classList.remove("d-none");
+        feedback(true);
+      } catch (e) {
+        $("pinError").textContent = "Connection error. Check internet before deleting.";
+        $("pinError").classList.remove("d-none");
+      }
     }
 
     async function verifyDashboardPin() {
