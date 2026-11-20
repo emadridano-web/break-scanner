@@ -122,9 +122,9 @@
       </div>
       <div class="text-end">
         <button class="btn btn-dark btn-sm fw-bold shadow-sm px-3 py-2" onclick="openDashboardAuth()">
-          <i class="fa-solid fa-face-smile me-1 text-warning"></i>Dashboard
+          <i class="fa-solid fa-fingerprint me-1 text-warning"></i>Dashboard
         </button>
-        <div class="mt-1"><small class="badge bg-danger">v23 Face ID + Full Dashboard</small></div>
+        <div class="mt-1"><small class="badge bg-danger">v24 Biometric + Full Dashboard</small></div>
       </div>
     </div>
   </header>
@@ -202,10 +202,10 @@
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body text-center p-3">
-          <!-- Face ID / Fingerprint Button (lalabas kapag naka-register na ang device) -->
+          <!-- Biometric Button (lalabas kapag naka-register na ang device) -->
           <div id="bioLoginSection" class="d-none mb-3">
             <button class="btn btn-dark w-100 py-3 fw-bold shadow-sm mb-2" id="btnBioLogin" onclick="authenticateBiometric()">
-              <i class="fa-solid fa-face-smile fa-lg text-warning me-2"></i>Unlock with Face ID / Fingerprint
+              <i class="fa-solid fa-fingerprint fa-lg text-warning me-2"></i>Unlock with Biometrics
             </button>
             <div class="small text-muted">— or use backup PIN —</div>
           </div>
@@ -222,10 +222,10 @@
 
           <!-- One-time Biometric Registration Button -->
           <button class="btn btn-outline-dark btn-sm w-100 fw-bold mt-1 d-none" id="btnRegisterBio" onclick="registerBiometric()">
-            <i class="fa-solid fa-fingerprint me-1 text-primary"></i>Register Face ID / Fingerprint
+            <i class="fa-solid fa-fingerprint me-1 text-primary"></i>Register Fingerprint / Biometrics
           </button>
           <button class="btn btn-link btn-sm text-danger text-decoration-none w-100 mt-1 d-none" id="btnResetBio" onclick="resetBiometric()">
-            <i class="fa-solid fa-trash-can me-1"></i>Remove Saved Face ID
+            <i class="fa-solid fa-trash-can me-1"></i>Remove Saved Biometrics
           </button>
         </div>
       </div>
@@ -355,7 +355,7 @@
 
   <script>
     // PALITAN ITO NG BAGONG APPS SCRIPT /exec URL MO KAPAG NAG-NEW DEPLOYMENT KA
-    const API_URL = "https://script.google.com/macros/s/AKfycby5_30Te50gyAWRbhWNZmH_uWlKtDSy_IT2R7y7SuRjec79Uh2p6ofoOtrzv7vDYDXPvw/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycbwSPyUX7bDl5iT9hLPgeKNOo0r41hlTsUYaA9I2JDqPimsWabB-6dByxBfomVGIogZz_w/exec";
 
     let scanner = null;
     let fileScanner = null;
@@ -421,7 +421,7 @@
         warn.push("Scanner library failed to load. Check your internet connection and reload.");
       }
       if (/FBAN|FBAV|FB_IAB|Messenger|Instagram|Line\/|TikTok/i.test(ua)) {
-        warn.push("You opened this inside Messenger/Facebook, which blocks the camera. " +
+        warn.push("You opened this inside Messenger/Facebook, which blocks the camera and biometrics. " +
                   "Tap the <b>&#8942;</b> or <b>&hellip;</b> menu and choose <b>Open in Chrome</b> (Android) or <b>Open in Safari</b> (iPhone).");
       }
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -818,7 +818,7 @@
       finish();
     }
 
-    /* ---------- SUPERVISOR DASHBOARD + FACE ID / FINGERPRINT (WEBAUTHN) ---------- */
+    /* ---------- SUPERVISOR DASHBOARD + BIOMETRIC UNLOCK (WEBAUTHN) ---------- */
     let dashPin = "";
     let dashData = null;
     let dashFilter = "ALL";
@@ -866,7 +866,6 @@
       const modal = new bootstrap.Modal($("pinModal"));
       modal.show();
 
-      // Kung naka-register na ang Face ID / Fingerprint, i-trigger agad ang biometric prompt
       if (bioAvailable && savedCredId && savedBioPin) {
         setTimeout(() => authenticateBiometric(), 350);
       } else {
@@ -874,11 +873,11 @@
       }
     }
 
-    // 1. Mag-register ng Face ID / Fingerprint (kailangan muna i-type ang tamang PIN)
+    // 1. Register Fingerprint / Biometrics (Universal Android & iPhone)
     async function registerBiometric() {
       const entered = $("dashPinInput").value.trim();
       if (!entered) {
-        $("pinError").textContent = "Type the Supervisor PIN first, then tap Register Face ID.";
+        $("pinError").textContent = "Type the Supervisor PIN first, then tap Register Biometrics.";
         $("pinError").classList.remove("d-none");
         $("dashPinInput").focus();
         return;
@@ -915,8 +914,7 @@
               { type: "public-key", alg: -257 }
             ],
             authenticatorSelection: {
-              authenticatorAttachment: "platform",
-              userVerification: "required"
+              userVerification: "preferred"
             },
             timeout: 60000
           }
@@ -931,22 +929,22 @@
         bootstrap.Modal.getInstance($("pinModal")).hide();
         openDashboardModal(true);
       } catch (e) {
-        $("pinError").textContent = "Face ID / Fingerprint registration cancelled or not supported on this browser.";
+        $("pinError").textContent = "Biometric error (" + (e.name || "Blocked") + "): Open in Chrome/Safari and ensure phone screen lock is active.";
         $("pinError").classList.remove("d-none");
       } finally {
         $("btnRegisterBio").disabled = false;
-        $("btnRegisterBio").innerHTML = '<i class="fa-solid fa-fingerprint me-1 text-primary"></i>Register Face ID / Fingerprint';
+        $("btnRegisterBio").innerHTML = '<i class="fa-solid fa-fingerprint me-1 text-primary"></i>Register Fingerprint / Biometrics';
       }
     }
 
-    // 2. Mag-unlock gamit ang Face ID / Fingerprint
+    // 2. Unlock using Fingerprint / Biometrics
     async function authenticateBiometric() {
       const savedCredId = localStorage.getItem("supBioCredId");
       const savedBioPin = localStorage.getItem("supBioPin");
       if (!savedCredId || !savedBioPin) return;
 
       $("btnBioLogin").disabled = true;
-      $("btnBioLogin").innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i>Scanning Face / Finger...';
+      $("btnBioLogin").innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i>Scanning Biometrics...';
       $("pinError").classList.add("d-none");
 
       try {
@@ -960,12 +958,11 @@
               type: "public-key",
               id: b64ToBuf(savedCredId)
             }],
-            userVerification: "required",
+            userVerification: "preferred",
             timeout: 60000
           }
         });
 
-        // Verified na ang mukha/daliri ng supervisor -> i-load ang dashboard
         const res = await fetchDashboardFromServer(savedBioPin);
         if (res && res.success) {
           dashPin = savedBioPin;
@@ -978,11 +975,11 @@
           $("pinError").classList.remove("d-none");
         }
       } catch (e) {
-        $("pinError").textContent = "Face ID / Fingerprint not recognized or cancelled. You can use PIN below.";
+        $("pinError").textContent = "Biometrics cancelled or not recognized. You can use PIN below.";
         $("pinError").classList.remove("d-none");
       } finally {
         $("btnBioLogin").disabled = false;
-        $("btnBioLogin").innerHTML = '<i class="fa-solid fa-face-smile fa-lg text-warning me-2"></i>Unlock with Face ID / Fingerprint';
+        $("btnBioLogin").innerHTML = '<i class="fa-solid fa-fingerprint fa-lg text-warning me-2"></i>Unlock with Biometrics';
       }
     }
 
@@ -992,7 +989,7 @@
       $("bioLoginSection").classList.add("d-none");
       $("btnResetBio").classList.add("d-none");
       if (hasBiometricSupport()) $("btnRegisterBio").classList.remove("d-none");
-      $("pinError").textContent = "Saved Face ID / Fingerprint removed.";
+      $("pinError").textContent = "Saved biometrics removed.";
       $("pinError").classList.remove("d-none");
     }
 
