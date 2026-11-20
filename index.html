@@ -185,7 +185,7 @@
         <button class="btn btn-dark btn-sm fw-bold shadow-sm px-3 py-2" onclick="openDashboardAuth()">
           <i class="fa-solid fa-chart-pie me-1 text-warning"></i>Dashboard
         </button>
-        <div class="mt-1"><small class="badge bg-danger">v33 Fast Face Bio + Clean UI</small></div>
+        <div class="mt-1"><small class="badge bg-danger">v34 Auto-Sleep 5m + Cloud Sync</small></div>
       </div>
     </div>
   </header>
@@ -507,13 +507,18 @@
 
   <script>
     // PALITAN ITO NG BAGONG APPS SCRIPT /exec URL MO KAPAG NAG-NEW DEPLOYMENT KA
-    const API_URL = "https://script.google.com/macros/s/AKfycbytizFL7VpcL260xaleIr4uB9dFYmGB0oYR49HOpmN_T_Y-DhfuwuJzP9bib16oW-wWow/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycby5_30Te50gyAWRbhWNZmH_uWlKtDSy_IT2R7y7SuRjec79Uh2p6ofoOtrzv7vDYDXPvw/exec";
 
     // STRICT BIOMETRIC THRESHOLD (0.43 = hindi magkakamali sa mukha ng iba)
     const STRICT_MATCH_THRESHOLD = 0.43;
+    // AUTO-OFF TIMER (5 MINUTES = 300,000 ms)
+    const IDLE_TIMEOUT_MS = 5 * 60 * 1000;
 
     let busy = false, cameraOn = false, restartOnReturn = false;
     let bioStream = null, bioLoopActive = false, isEnrollingNow = false;
+    let lastBioActivityMs = Date.now();
+    let idleCheckTimer = null;
+
     let facing = "user";
     let camId = "";
     try { camId = localStorage.getItem("frontCamId") || ""; } catch (e) {}
@@ -714,7 +719,6 @@
       return faceModelsLoadingPromise;
     }
 
-    // FAST 2-SHOT CAPTURE (Mas mabilis kumagat kahit medyo madilim o naka-salamin)
     async function captureFastAveragedDescriptor(videoEl, onProgress) {
       const opts = new faceapi.TinyFaceDetectorOptions({ inputSize: 192, scoreThreshold: 0.45 });
       const samples = [];
@@ -729,7 +733,6 @@
               samples.push(det.descriptor);
               if (onProgress) onProgress(samples.length, 2);
             } else {
-              // Kung gumalaw nang malaki, i-replace ang unang shot para hindi ma-stuck
               samples[0] = det.descriptor;
             }
           }
@@ -887,7 +890,6 @@
     function toggleEnrollBox() {
       const box = $("enrollBox");
       box.classList.toggle("d-none");
-      // Palaging nakatago ang listahan kapag binubuksan ang enroll box para malinis ang screen
       if (!box.classList.contains("d-none")) {
         empDrawerOpen = false;
         $("enrolledListDrawer").classList.add("d-none");
@@ -918,12 +920,12 @@
 
       $("btnCaptureEmpFace").disabled = true;
       isEnrollingNow = true;
+      lastBioActivityMs = Date.now();
       statusEl.className = "small fw-bold text-primary mb-2";
       statusEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i>Opening camera & verifying PIN...';
       statusEl.classList.remove("d-none");
 
       try {
-        // Sabay na i-verify ang PIN, load models, at buksan ang camera para walang delay
         const camPromise = !cameraOn
           ? (facing = "user", camId = "", startBioCamera(true))
           : Promise.resolve();
@@ -960,7 +962,6 @@
           saveEnrolledEmployees(list);
           pushFacesToCloud(pin);
 
-          // 15s cooldown + kusang isara ang camera para hindi mag-record agad ng break
           lastEnrollCooldown[empId] = Date.now() + 15000;
           await stopBioCamera();
 
@@ -986,7 +987,23 @@
       }
     }
 
-    /* ---------- MAIN LIVE FACE BIOMETRIC SCANNER ---------- */
+    /* ---------- MAIN LIVE FACE BIOMETRIC SCANNER + 5-MIN AUTO-OFF ---------- */
+    function startIdleMonitor() {
+      clearInterval(idleCheckTimer);
+      lastBioActivityMs = Date.now();
+      idleCheckTimer = setInterval(async () => {
+        if (!cameraOn || isEnrollingNow) {
+          lastBioActivityMs = Date.now();
+          return;
+        }
+        const idleElapsed = Date.now() - lastBioActivityMs;
+        if (idleElapsed >= IDLE_TIMEOUT_MS) {
+          await stopBioCamera();
+          setResult(icon("fa-moon text-secondary") + "Camera auto-stopped after 5 minutes of inactivity. Tap <b>START FACE BIO SCANNER</b> to scan again.");
+        }
+      }, 5000);
+    }
+
     async function startBioCamera(skipEmptyCheck) {
       unlockAudio();
       const enrolled = getEnrolledEmployees();
@@ -1015,6 +1032,7 @@
         await vid.play();
 
         cameraOn = true;
+        lastBioActivityMs = Date.now();
         $("btnStart").classList.add("d-none");
         $("btnStop").classList.remove("d-none");
         $("btnSwitch").classList.remove("d-none");
@@ -1023,9 +1041,10 @@
 
         $("bioOverlayText").textContent = "Ready - Look at Camera";
         if (!isEnrollingNow) {
-          setResult(icon("fa-face-viewfinder text-danger") + "Itapat ang mukha sa camera para mag-Break Out / Break In");
+          setResult(icon("fa-face-viewfinder text-danger") + "Itapat ang mukha sa camera para mag-Break Out / Break In (Auto-off in 5m)");
         }
 
+        startIdleMonitor();
         startBioRecognitionLoop();
       } catch (err) {
         cameraOn = false;
@@ -1062,6 +1081,9 @@
                 }
 
                 if (bestEmp && bestDist <= STRICT_MATCH_THRESHOLD) {
+                  // Reset 5-minute idle timer kapag may kilalang empleyado na nag-bio
+                  lastBioActivityMs = Date.now();
+
                   if (lastEnrollCooldown[bestEmp.id] && Date.now() < lastEnrollCooldown[bestEmp.id]) {
                     const secsLeft = Math.ceil((lastEnrollCooldown[bestEmp.id] - Date.now()) / 1000);
                     $("bioFaceGuide").style.borderColor = "#3b82f6";
@@ -1112,6 +1134,7 @@
 
     async function stopBioCamera() {
       bioLoopActive = false;
+      clearInterval(idleCheckTimer);
       if (bioStream) {
         bioStream.getTracks().forEach(t => t.stop());
         bioStream = null;
@@ -1277,6 +1300,7 @@
       busy = true;
       lastId = empId;
       lastTime = Date.now();
+      lastBioActivityMs = Date.now();
 
       const cachedName = empCache[empId];
       const nowTimeStr = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
