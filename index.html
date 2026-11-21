@@ -3,11 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Face Bio Break Scanner</title>
+  <title>Face Bio Break & Production Out Scanner</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <!-- Camera Face Recognition Library -->
   <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/dist/face-api.js"></script>
 
   <style>
@@ -37,13 +36,28 @@
     }
     h3 { color: #b91c1c; }
     .bg-card {
-      background: rgba(255, 255, 255, 0.88) !important; backdrop-filter: blur(8px);
+      background: rgba(255, 255, 255, 0.9) !important; backdrop-filter: blur(8px);
       border: 1px solid rgba(220, 38, 38, 0.3) !important; border-radius: 14px;
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
       color: #1e293b;
     }
 
-    /* Main Employee Face Bio Camera Frame */
+    .mode-switch-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .mode-btn {
+      flex: 1;
+      padding: 11px 8px;
+      border-radius: 12px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.78rem;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
     .bio-reader-wrap {
       position: relative;
       width: 100%;
@@ -55,6 +69,7 @@
       overflow: hidden;
       background: #0f172a;
       box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+      transition: border-color 0.25s ease;
     }
     #bioVideo {
       width: 100%;
@@ -97,9 +112,9 @@
       border: 1px solid #cbd5e1;
     }
     .result-box {
-      font-family: 'Orbitron', sans-serif; font-size: 1.15rem;
+      font-family: 'Orbitron', sans-serif; font-size: 1.05rem;
       background: rgba(248, 250, 252, 0.95); border: 2px solid rgba(220, 38, 38, 0.35);
-      border-radius: 10px; padding: 15px; margin-top: 15px;
+      border-radius: 10px; padding: 14px; margin-top: 14px;
       color: #0f172a;
       box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.04);
     }
@@ -112,9 +127,8 @@
       box-shadow: 0 0 0 0.2rem rgba(220, 38, 38, 0.2);
     }
     .form-control::placeholder { color: #94a3b8; }
-    .btn-mobile { padding: 12px; font-size: 1.05rem; font-family: 'Orbitron', sans-serif; font-weight: 700; }
+    .btn-mobile { padding: 12px; font-size: 1.02rem; font-family: 'Orbitron', sans-serif; font-weight: 700; }
 
-    /* Supervisor Face Scan Video Box */
     .face-cam-wrap {
       position: relative;
       width: 200px;
@@ -133,7 +147,6 @@
       transform: scaleX(-1);
     }
 
-    /* Dashboard styling - LARGE & FULLSCREEN */
     .stat-card {
       border-radius: 14px;
       padding: 16px 18px;
@@ -141,37 +154,15 @@
       background: #ffffff;
       box-shadow: 0 3px 10px rgba(0,0,0,0.06);
     }
-    .stat-label {
-      font-size: 0.95rem;
-      letter-spacing: 0.5px;
-    }
-    .stat-num {
-      font-family: 'Orbitron', sans-serif;
-      font-size: 2.3rem;
-      font-weight: 900;
-      line-height: 1.15;
-    }
+    .stat-label { font-size: 0.95rem; letter-spacing: 0.5px; }
+    .stat-num { font-family: 'Orbitron', sans-serif; font-size: 2.3rem; font-weight: 900; line-height: 1.15; }
     .table-dash th {
-      font-size: 0.95rem;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      background: #e2e8f0;
-      color: #0f172a;
-      padding: 12px 10px;
-      position: sticky;
-      top: 0;
-      z-index: 1;
-      white-space: nowrap;
+      font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.5px;
+      background: #e2e8f0; color: #0f172a; padding: 12px 10px;
+      position: sticky; top: 0; z-index: 1; white-space: nowrap;
     }
-    .table-dash td {
-      vertical-align: middle;
-      font-size: 1.1rem;
-      padding: 12px 10px;
-    }
-    .table-dash .badge {
-      font-size: 0.9rem;
-      padding: 6px 10px;
-    }
+    .table-dash td { vertical-align: middle; font-size: 1.1rem; padding: 12px 10px; }
+    .table-dash .badge { font-size: 0.9rem; padding: 6px 10px; }
   </style>
 </head>
 <body>
@@ -179,13 +170,13 @@
     <div class="container d-flex justify-content-between align-items-center">
       <div class="text-start">
         <h3 class="m-0 fs-5 fs-md-3"><i class="fa-solid fa-face-viewfinder me-2"></i>FACE BIO SCANNER</h3>
-        <small class="text-secondary fw-bold d-block">Mega Prime Foods Inc. - Break Time Logger</small>
+        <small class="text-secondary fw-bold d-block">Mega Prime Foods Inc. - Break &amp; Out Logger</small>
       </div>
       <div class="text-end">
         <button class="btn btn-dark btn-sm fw-bold shadow-sm px-3 py-2" onclick="openDashboardAuth()">
           <i class="fa-solid fa-chart-pie me-1 text-warning"></i>Dashboard
         </button>
-        <div class="mt-1"><small class="badge bg-danger">v34 Auto-Sleep 5m + Cloud Sync</small></div>
+        <div class="mt-1"><small class="badge bg-danger">v35 Break + Prod Out Lock</small></div>
       </div>
     </div>
   </header>
@@ -196,6 +187,21 @@
         <div class="p-3 p-md-4 bg-card text-center">
 
           <div id="warn" class="alert alert-warning small text-start d-none"></div>
+
+          <!-- SEPARATE MODE SWITCHER: BREAK IN/OUT vs PRODUCTION OUT (UWIAN) -->
+          <div class="mode-switch-bar">
+            <button type="button" id="modeBreakBtn" class="mode-btn" onclick="setScanMode('break')"
+                    style="border: 2px solid #15803d; background: #15803d; color: #ffffff;">
+              <i class="fa-solid fa-mug-hot d-block mb-1 fs-5"></i>BREAK IN / OUT
+            </button>
+            <button type="button" id="modeProdOutBtn" class="mode-btn" onclick="setScanMode('prodout')"
+                    style="border: 2px solid #ea580c; background: #ffffff; color: #ea580c;">
+              <i class="fa-solid fa-door-open d-block mb-1 fs-5"></i>PRODUCTION OUT
+              <span id="prodOutWindowTag" class="d-block" style="font-family:'Rajdhani',sans-serif; font-size:0.75rem; font-weight:700;">6AM / 3PM / 6PM</span>
+            </button>
+          </div>
+
+          <div id="prodOutScheduleBanner" class="alert alert-warning py-2 px-3 small fw-bold d-none mb-2"></div>
 
           <!-- Main Employee Face Biometric Camera -->
           <div class="bio-reader-wrap" id="bioReaderWrap">
@@ -239,11 +245,10 @@
               <div id="enrollStatus" class="small fw-bold text-primary mb-2 d-none"></div>
               <div class="d-grid gap-2">
                 <button class="btn btn-danger fw-bold" id="btnCaptureEmpFace" type="button" onclick="enrollEmployeeFace()">
-                  <i class="fa-solid fa-camera me-1"></i>Capture & Save Employee Face
+                  <i class="fa-solid fa-camera me-1"></i>Capture &amp; Save Employee Face
                 </button>
               </div>
 
-              <!-- Collapsible Hidden Toggle para sa Enrolled Employees List -->
               <div id="enrolledListSection" class="mt-3 pt-2 border-top d-none">
                 <button type="button" class="btn btn-outline-secondary btn-sm w-100 fw-bold d-flex justify-content-between align-items-center" onclick="toggleEnrolledListDrawer()">
                   <span><i class="fa-solid fa-users-viewfinder me-1 text-danger"></i><span id="enrolledDrawerBtnText">Show Registered Faces (<span id="enrolledListCount">0</span>)</span></span>
@@ -265,11 +270,15 @@
 
           <!-- Manual Employee ID Backup -->
           <div class="mt-2 text-start border-top pt-3">
-            <label class="form-label small text-dark fw-bold"><i class="fa-solid fa-keyboard me-1 text-danger"></i>Manual Employee ID Backup</label>
+            <label class="form-label small text-dark fw-bold" id="manualBackupLabel">
+              <i class="fa-solid fa-keyboard me-1 text-danger"></i>Manual Employee ID Backup (Break Mode)
+            </label>
             <div class="input-group">
               <input type="text" id="manualEmpId" class="form-control" placeholder="Enter ID (e.g. 001)"
                      inputmode="numeric" onkeydown="if(event.key==='Enter') submitManualId()">
-              <button class="btn btn-danger" onclick="submitManualId()"><i class="fa-solid fa-arrow-right"></i> Log</button>
+              <button class="btn btn-danger fw-bold" id="btnManualLog" onclick="submitManualId()">
+                <i class="fa-solid fa-arrow-right"></i> Log
+              </button>
             </div>
           </div>
 
@@ -315,7 +324,7 @@
           <div id="deleteConfirmError" class="text-danger small fw-bold mb-2 d-none"></div>
           <div class="d-grid gap-2">
             <button type="button" class="btn btn-danger fw-bold" id="btnConfirmDeleteExec" onclick="executeProtectedDelete()">
-              <i class="fa-solid fa-trash-can me-1"></i>Verify PIN & Delete
+              <i class="fa-solid fa-trash-can me-1"></i>Verify PIN &amp; Delete
             </button>
             <button type="button" class="btn btn-outline-secondary btn-sm fw-bold" data-bs-dismiss="modal">Cancel</button>
           </div>
@@ -365,7 +374,6 @@
               </div>
             </div>
 
-            <!-- Collapsible Hidden Toggle para sa Supervisor Faces -->
             <div id="registeredFacesSection" class="mt-3 pt-2 border-top text-start mx-auto d-none" style="max-width: 310px;">
               <button type="button" class="btn btn-outline-secondary btn-sm w-100 fw-bold d-flex justify-content-between align-items-center" onclick="toggleSupListDrawer()">
                 <span><i class="fa-solid fa-user-shield me-1 text-danger"></i><span id="supDrawerBtnText">Show Supervisor Faces (<span id="faceCountBadge">0</span>)</span></span>
@@ -506,14 +514,14 @@
   </div>
 
   <script>
-    // PALITAN ITO NG BAGONG APPS SCRIPT /exec URL MO KAPAG NAG-NEW DEPLOYMENT KA
     const API_URL = "https://script.google.com/macros/s/AKfycbyTMnYv-UpwMECFwCqn9aMNIPG5d9E_Uk2AFMMBNpdGfaSly5yBg_y1jbcxeKy0kYFlcQ/exec";
 
-    // STRICT BIOMETRIC THRESHOLD (0.43 = hindi magkakamali sa mukha ng iba)
     const STRICT_MATCH_THRESHOLD = 0.43;
-    // AUTO-OFF TIMER (5 MINUTES = 300,000 ms)
     const IDLE_TIMEOUT_MS = 5 * 60 * 1000;
+    const SHIFT_OUT_HOURS = [6, 15, 18]; // 6:00 AM, 3:00 PM, 6:00 PM
+    const PROD_OUT_GRACE_WINDOW_MINS = 120;
 
+    let currentScanMode = "break"; // "break" or "prodout"
     let busy = false, cameraOn = false, restartOnReturn = false;
     let bioStream = null, bioLoopActive = false, isEnrollingNow = false;
     let lastBioActivityMs = Date.now();
@@ -524,13 +532,10 @@
     try { camId = localStorage.getItem("frontCamId") || ""; } catch (e) {}
 
     let lastId = "", lastTime = 0;
-    let lastEnrollCooldown = {};
     let audioCtx = null;
 
     let empCache = {};
-    let empStateCache = {};
     try { empCache = JSON.parse(localStorage.getItem("empNameCache") || "{}"); } catch (e) {}
-    try { empStateCache = JSON.parse(localStorage.getItem("empStateCache") || "{}"); } catch (e) {}
 
     const $ = id => document.getElementById(id);
     const esc = s => String(s).replace(/[&<>"']/g, c =>
@@ -539,6 +544,85 @@
     const setResult = html => { $("result").innerHTML = html; };
     const SPIN = icon("fa-spinner fa-spin text-warning");
     const ERR = icon("fa-triangle-exclamation text-danger");
+
+    /* ---------- PRODUCTION OUT TIME LOCK CHECKER (6AM, 3PM, 6PM) ---------- */
+    function getProductionOutClientStatus() {
+      const now = new Date();
+      const nowMs = now.getTime();
+      const windowMs = PROD_OUT_GRACE_WINDOW_MINS * 60 * 1000;
+      let nextUpcoming = null;
+
+      for (let dayOffset = -1; dayOffset <= 1; dayOffset++) {
+        for (let i = 0; i < SHIFT_OUT_HOURS.length; i++) {
+          const cand = new Date(now);
+          cand.setDate(cand.getDate() + dayOffset);
+          cand.setHours(SHIFT_OUT_HOURS[i], 0, 0, 0);
+          const startMs = cand.getTime();
+          const endMs = startMs + windowMs;
+          if (nowMs >= startMs && nowMs <= endMs) {
+            const lbl = cand.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            return { open: true, label: lbl };
+          }
+          if (startMs > nowMs && (!nextUpcoming || startMs < nextUpcoming.getTime())) {
+            nextUpcoming = cand;
+          }
+        }
+      }
+      const nextLbl = nextUpcoming.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const minsLeft = Math.ceil((nextUpcoming.getTime() - nowMs) / 60000);
+      return { open: false, nextLabel: nextLbl, minsLeft: minsLeft };
+    }
+
+    function updateProdOutStatusUI() {
+      const st = getProductionOutClientStatus();
+      const tag = $("prodOutWindowTag");
+      const banner = $("prodOutScheduleBanner");
+      if (st.open) {
+        tag.innerHTML = `<i class="fa-solid fa-lock-open"></i> OPEN (${st.label})`;
+        if (currentScanMode === "prodout") {
+          banner.className = "alert alert-success py-2 px-3 small fw-bold mb-2";
+          banner.innerHTML = `<i class="fa-solid fa-door-open me-1"></i>PRODUCTION OUT OPEN (${st.label} Shift) - Ready to scan!`;
+          banner.classList.remove("d-none");
+        } else {
+          banner.classList.add("d-none");
+        }
+      } else {
+        tag.innerHTML = `<i class="fa-solid fa-lock"></i> Next: ${st.nextLabel}`;
+        if (currentScanMode === "prodout") {
+          banner.className = "alert alert-danger py-2 px-3 small fw-bold mb-2";
+          banner.innerHTML = `<i class="fa-solid fa-lock me-1"></i>LOCKED: Hindi pa oras ng Out. Bukas sa <b>${st.nextLabel}</b> (${st.minsLeft} mins pa).`;
+          banner.classList.remove("d-none");
+        } else {
+          banner.classList.add("d-none");
+        }
+      }
+    }
+
+    function setScanMode(mode) {
+      currentScanMode = mode;
+      const bBtn = $("modeBreakBtn");
+      const pBtn = $("modeProdOutBtn");
+      const wrap = $("bioReaderWrap");
+      const manualLbl = $("manualBackupLabel");
+      const manualBtn = $("btnManualLog");
+
+      if (mode === "prodout") {
+        pBtn.style.background = "#ea580c"; pBtn.style.color = "#ffffff";
+        bBtn.style.background = "#ffffff"; bBtn.style.color = "#15803d";
+        wrap.style.borderColor = "#ea580c";
+        manualLbl.innerHTML = '<i class="fa-solid fa-door-open me-1 text-warning"></i>Manual ID Backup (<b>PRODUCTION OUT MODE</b>)';
+        manualBtn.className = "btn btn-warning fw-bold";
+      } else {
+        bBtn.style.background = "#15803d"; bBtn.style.color = "#ffffff";
+        pBtn.style.background = "#ffffff"; pBtn.style.color = "#ea580c";
+        wrap.style.borderColor = "#dc2626";
+        manualLbl.innerHTML = '<i class="fa-solid fa-keyboard me-1 text-danger"></i>Manual Employee ID Backup (Break Mode)';
+        manualBtn.className = "btn btn-danger fw-bold";
+      }
+      updateProdOutStatusUI();
+    }
+
+    setInterval(updateProdOutStatusUI, 15000);
 
     function inAppsScript() {
       return typeof google !== "undefined" && google.script && google.script.run;
@@ -554,14 +638,13 @@
       };
       if (inAppsScript()) {
         google.script.run.withSuccessHandler(handler).getEmployeeDirectory();
-      } else if (API_URL.indexOf("PASTE_YOUR_ID_HERE") === -1) {
+      } else {
         fetch(API_URL + "?action=employees").then(r => r.json()).then(handler).catch(() => {});
       }
     }
 
-    /* ---------- CLOUD BACKUP & AUTO-RESTORE NG FACE BIO ---------- */
     async function syncFacesFromCloud() {
-      if (inAppsScript() || API_URL.indexOf("PASTE_YOUR_ID_HERE") !== -1) return;
+      if (inAppsScript()) return;
       try {
         const res = await fetch(API_URL + "?action=getfaces").then(r => r.json());
         if (res && res.success) {
@@ -583,7 +666,7 @@
     }
 
     async function pushFacesToCloud(pin) {
-      if (inAppsScript() || API_URL.indexOf("PASTE_YOUR_ID_HERE") !== -1 || !pin) return;
+      if (inAppsScript() || !pin) return;
       try {
         const payload = {
           action: "savefaces",
@@ -603,13 +686,21 @@
       } catch (e) {}
     }
 
-    function callServer(id) {
+    function callServer(id, mode) {
       if (inAppsScript()) {
         return new Promise(function (resolve, reject) {
-          google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).scanEmployee(id);
+          if (mode === "prodout") {
+            google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).logProductionOut(id);
+          } else {
+            google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).scanEmployee(id);
+          }
         });
       }
-      return fetch(API_URL + "?id=" + encodeURIComponent(id))
+      const url = mode === "prodout"
+        ? `${API_URL}?action=prodout&id=${encodeURIComponent(id)}`
+        : `${API_URL}?id=${encodeURIComponent(id)}`;
+
+      return fetch(url)
         .then(function (r) { return r.text(); })
         .then(function (t) {
           try { return JSON.parse(t); }
@@ -621,19 +712,16 @@
       preloadEmployees();
       renderEnrolledEmployees();
       syncFacesFromCloud();
+      updateProdOutStatusUI();
       setTimeout(() => { loadFaceModels().catch(() => {}); }, 300);
 
       const ua = navigator.userAgent || "";
       const warn = [];
-      if (!inAppsScript() && API_URL.indexOf("PASTE_YOUR_ID_HERE") !== -1) {
-        warn.push("Setup needed: put your Apps Script <b>/exec</b> URL in <b>API_URL</b> inside index.html.");
-      }
       if (typeof faceapi === "undefined") {
         warn.push("Face Biometric AI library failed to load. Check your internet connection and reload.");
       }
       if (/FBAN|FBAV|FB_IAB|Messenger|Instagram|Line\/|TikTok/i.test(ua)) {
-        warn.push("You opened this inside Messenger/Facebook, which blocks the camera. " +
-                  "Tap the <b>&#8942;</b> or <b>&hellip;</b> menu and choose <b>Open in Chrome</b> (Android) or <b>Open in Safari</b> (iPhone).");
+        warn.push("You opened this inside Messenger/Facebook, which blocks the camera. Open in Chrome or Safari.");
       }
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         warn.push("This browser can't open a live camera. Use Chrome or Safari.");
@@ -647,13 +735,11 @@
     function cameraErrorMessage(err) {
       const text = String((err && (err.name + ": " + err.message)) || err);
       if (/NotAllowed|Permission|denied/i.test(text))
-        return "Camera permission is blocked. Tap the lock icon in the address bar > Permissions > Camera > Allow, then reload the page.";
+        return "Camera permission is blocked. Allow Camera in site settings and reload.";
       if (/NotFound|no camera|Requested device not found/i.test(text))
         return "No camera found on this device.";
       if (/NotReadable|in use|Could not start/i.test(text))
-        return "Camera is being used by another app. Close other camera apps and try again.";
-      if (/secure|https/i.test(text))
-        return "Camera needs a secure (https) page.";
+        return "Camera is being used by another app.";
       return "Could not start camera (" + text + ").";
     }
 
@@ -695,1196 +781,601 @@
       } catch (e) {}
     }
 
-    /* ---------- FACE AI MODELS LOADER ---------- */
+    /* ---------- FACE MODELS & DESCRIPTORS ---------- */
     const FACE_MODEL_URL = "https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/model";
-    let faceModelsReady = false;
-    let faceModelsLoadingPromise = null;
+    let faceModelsLoaded = false;
 
-    function loadFaceModels() {
-      if (faceModelsReady) return Promise.resolve(true);
-      if (faceModelsLoadingPromise) return faceModelsLoadingPromise;
-      if (typeof faceapi === "undefined") return Promise.resolve(false);
-
-      faceModelsLoadingPromise = Promise.all([
+    async function loadFaceModels() {
+      if (faceModelsLoaded) return true;
+      if (typeof faceapi === "undefined") return false;
+      await Promise.all([
         faceapi.nets.tinyFaceDetector.loadFromUri(FACE_MODEL_URL),
         faceapi.nets.faceLandmark68Net.loadFromUri(FACE_MODEL_URL),
         faceapi.nets.faceRecognitionNet.loadFromUri(FACE_MODEL_URL)
-      ]).then(() => {
-        faceModelsReady = true;
-        return true;
-      }).catch(err => {
-        faceModelsLoadingPromise = null;
-        throw err;
-      });
-      return faceModelsLoadingPromise;
+      ]);
+      faceModelsLoaded = true;
+      return true;
     }
 
-    async function captureFastAveragedDescriptor(videoEl, onProgress) {
-      const opts = new faceapi.TinyFaceDetectorOptions({ inputSize: 192, scoreThreshold: 0.45 });
-      const samples = [];
-      let attempts = 0;
-
-      while (attempts < 45 && samples.length < 2) {
-        attempts++;
-        if (videoEl.readyState >= 2) {
-          const det = await faceapi.detectSingleFace(videoEl, opts).withFaceLandmarks().withFaceDescriptor();
-          if (det && det.descriptor) {
-            if (samples.length === 0 || faceapi.euclideanDistance(samples[0], det.descriptor) < 0.44) {
-              samples.push(det.descriptor);
-              if (onProgress) onProgress(samples.length, 2);
-            } else {
-              samples[0] = det.descriptor;
-            }
-          }
-        }
-        await new Promise(r => setTimeout(r, 60));
+    function euclideanDist(a, b) {
+      let sum = 0;
+      for (let i = 0; i < a.length; i++) {
+        const d = a[i] - b[i];
+        sum += d * d;
       }
-
-      if (samples.length === 0) return null;
-      if (samples.length === 1) return Array.from(samples[0]);
-
-      const avg = new Float32Array(samples[0].length);
-      for (let i = 0; i < avg.length; i++) {
-        avg[i] = (samples[0][i] + samples[1][i]) / 2;
-      }
-      return Array.from(avg);
+      return Math.sqrt(sum);
     }
-
-    /* ---------- PASSWORD-PROTECTED DELETE SYSTEM ---------- */
-    let pendingDeleteAction = null;
-
-    function promptDeleteAction(type, id, displayName) {
-      pendingDeleteAction = { type: type, id: id };
-      $("deleteConfirmTargetText").textContent = "Delete: " + displayName;
-      $("deleteConfirmPin").value = "";
-      $("deleteConfirmError").classList.add("d-none");
-
-      const modal = new bootstrap.Modal($("confirmDeleteModal"));
-      modal.show();
-      setTimeout(() => $("deleteConfirmPin").focus(), 350);
-    }
-
-    async function executeProtectedDelete() {
-      if (!pendingDeleteAction) return;
-      const pin = $("deleteConfirmPin").value.trim();
-      const errEl = $("deleteConfirmError");
-      const btn = $("btnConfirmDeleteExec");
-
-      if (!pin) {
-        errEl.textContent = "Please enter the Supervisor PIN.";
-        errEl.classList.remove("d-none");
-        $("deleteConfirmPin").focus();
-        return;
-      }
-
-      btn.disabled = true;
-      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i>Verifying...';
-      errEl.classList.add("d-none");
-
-      try {
-        const res = await fetchDashboardFromServer(pin);
-        if (!res || !res.success) {
-          errEl.textContent = (res && res.message) || "Wrong Supervisor PIN! Deletion blocked.";
-          errEl.classList.remove("d-none");
-          feedback(false);
-          return;
-        }
-
-        const act = pendingDeleteAction;
-        if (act.type === "EMP_ONE") {
-          const updated = getEnrolledEmployees().filter(e => e.id !== act.id);
-          saveEnrolledEmployees(updated);
-          $("enrollStatus").className = "small fw-bold text-success mb-2";
-          $("enrollStatus").textContent = "Deleted Face Bio for ID " + act.id + ".";
-          $("enrollStatus").classList.remove("d-none");
-        } else if (act.type === "EMP_ALL") {
-          saveEnrolledEmployees([]);
-          $("enrollStatus").className = "small fw-bold text-success mb-2";
-          $("enrollStatus").textContent = "All enrolled employee faces cleared.";
-          $("enrollStatus").classList.remove("d-none");
-        } else if (act.type === "SUP_ONE") {
-          const updated = getSavedFaceProfiles().filter(p => p.id !== act.id);
-          saveFaceProfiles(updated);
-          if (!updated.length) {
-            stopFaceCamera();
-            $("faceCameraSection").classList.add("d-none");
-          }
-          $("pinError").textContent = "Supervisor face deleted.";
-          $("pinError").classList.remove("d-none");
-        } else if (act.type === "SUP_ALL") {
-          stopFaceCamera();
-          saveFaceProfiles([]);
-          $("faceCameraSection").classList.add("d-none");
-          $("pinPromptLabel").textContent = "Enter Supervisor PIN to open or register a Face";
-          $("pinError").textContent = "All supervisor faces removed.";
-          $("pinError").classList.remove("d-none");
-        }
-
-        await pushFacesToCloud(pin);
-        feedback(true);
-        pendingDeleteAction = null;
-        bootstrap.Modal.getInstance($("confirmDeleteModal")).hide();
-      } catch (e) {
-        errEl.textContent = "Connection error. Check internet.";
-        errEl.classList.remove("d-none");
-      } finally {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fa-solid fa-trash-can me-1"></i>Verify PIN & Delete';
-      }
-    }
-
-    /* ---------- EMPLOYEE FACE BIOMETRIC STORAGE & COLLAPSIBLE LIST ---------- */
-    let empDrawerOpen = false;
 
     function getEnrolledEmployees() {
-      try {
-        const raw = localStorage.getItem("empFaceBioList");
-        const arr = raw ? JSON.parse(raw) : [];
-        return Array.isArray(arr) ? arr : [];
-      } catch (e) { return []; }
+      try { return JSON.parse(localStorage.getItem("empFaceBioList") || "[]"); }
+      catch (e) { return []; }
     }
 
     function saveEnrolledEmployees(list) {
-      localStorage.setItem("empFaceBioList", JSON.stringify(list));
+      try { localStorage.setItem("empFaceBioList", JSON.stringify(list)); } catch (e) {}
       renderEnrolledEmployees();
-    }
-
-    function toggleEnrolledListDrawer() {
-      empDrawerOpen = !empDrawerOpen;
-      const drawer = $("enrolledListDrawer");
-      const chev = $("enrolledDrawerChevron");
-      const count = getEnrolledEmployees().length;
-
-      drawer.classList.toggle("d-none", !empDrawerOpen);
-      chev.className = empDrawerOpen ? "fa-solid fa-chevron-up" : "fa-solid fa-chevron-down";
-      $("enrolledDrawerBtnText").innerHTML = (empDrawerOpen ? "Hide Registered Faces (" : "Show Registered Faces (") + '<span id="enrolledListCount">' + count + '</span>)';
     }
 
     function renderEnrolledEmployees() {
       const list = getEnrolledEmployees();
       $("enrolledEmpCount").textContent = list.length;
-
-      const sec = $("enrolledListSection");
-      const listEl = $("enrolledEmpList");
+      const section = $("enrolledListSection");
+      const container = $("enrolledEmpList");
       if (!list.length) {
-        sec.classList.add("d-none");
-        empDrawerOpen = false;
-        $("enrolledListDrawer").classList.add("d-none");
-        listEl.innerHTML = "";
+        section.classList.add("d-none");
         return;
       }
-
-      sec.classList.remove("d-none");
-      $("enrolledDrawerBtnText").innerHTML = (empDrawerOpen ? "Hide Registered Faces (" : "Show Registered Faces (") + '<span id="enrolledListCount">' + list.length + '</span>)';
-
-      listEl.innerHTML = list.map(emp =>
-        '<div class="list-group-item px-1 py-1 d-flex justify-content-between align-items-center bg-transparent">' +
-          '<span><strong class="text-danger">' + esc(emp.id) + '</strong> - ' + esc(emp.name) + '</span>' +
-          '<button type="button" class="btn btn-outline-danger btn-sm py-0 px-2" onclick="promptDeleteAction(\'EMP_ONE\', \'' + esc(emp.id) + '\', \'' + esc(emp.name + ' (' + emp.id + ')') + '\')" title="Requires Password">' +
-            '<i class="fa-solid fa-trash-can"></i>' +
-          '</button>' +
-        '</div>'
-      ).join("");
+      section.classList.remove("d-none");
+      $("enrolledListCount").textContent = list.length;
+      container.innerHTML = list.map(item => {
+        const name = empCache[item.id] || item.name || ("Employee " + item.id);
+        return `<div class="list-group-item d-flex justify-content-between align-items-center px-1 py-1">
+          <span><b>${esc(item.id)}</b> - ${esc(name)}</span>
+          <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="promptDeleteAction('EMP_ONE', '${esc(item.id)}', '${esc(item.id + " - " + name)}')">
+            <i class="fa-solid fa-trash"></i>
+          </button>
+        </div>`;
+      }).join("");
     }
 
     function toggleEnrollBox() {
-      const box = $("enrollBox");
-      box.classList.toggle("d-none");
-      if (!box.classList.contains("d-none")) {
-        empDrawerOpen = false;
-        $("enrolledListDrawer").classList.add("d-none");
-        $("enrolledDrawerChevron").className = "fa-solid fa-chevron-down";
-      }
-      renderEnrolledEmployees();
+      $("enrollBox").classList.toggle("d-none");
+    }
+
+    function toggleEnrolledListDrawer() {
+      const d = $("enrolledListDrawer");
+      const chev = $("enrolledDrawerChevron");
+      d.classList.toggle("d-none");
+      chev.className = d.classList.contains("d-none") ? "fa-solid fa-chevron-down" : "fa-solid fa-chevron-up";
     }
 
     async function enrollEmployeeFace() {
-      unlockAudio();
-      const empId = $("enrollEmpId").value.trim();
+      const id = $("enrollEmpId").value.trim();
       const pin = $("enrollPin").value.trim();
-      const statusEl = $("enrollStatus");
-
-      if (!empId || !pin) {
-        statusEl.className = "small fw-bold text-danger mb-2";
-        statusEl.textContent = "Ilagay ang Employee ID at Supervisor PIN bago mag-capture.";
-        statusEl.classList.remove("d-none");
+      const st = $("enrollStatus");
+      if (!id || !pin) {
+        st.textContent = "Enter Employee ID and Supervisor PIN.";
+        st.className = "small fw-bold text-danger mb-2";
+        st.classList.remove("d-none");
+        return;
+      }
+      if (!cameraOn) {
+        st.textContent = "Start the camera first before capturing face.";
+        st.className = "small fw-bold text-danger mb-2";
+        st.classList.remove("d-none");
         return;
       }
 
-      const existingList = getEnrolledEmployees();
-      const alreadyExists = existingList.find(e => e.id === empId);
-      if (alreadyExists) {
-        const okOverwrite = confirm("May naka-register nang Face Bio para sa ID " + empId + " (" + alreadyExists.name + "). Sigurado ka bang papalitan mo ito?");
-        if (!okOverwrite) return;
-      }
-
-      $("btnCaptureEmpFace").disabled = true;
       isEnrollingNow = true;
-      lastBioActivityMs = Date.now();
-      statusEl.className = "small fw-bold text-primary mb-2";
-      statusEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i>Opening camera & verifying PIN...';
-      statusEl.classList.remove("d-none");
+      st.textContent = "Scanning face... Look straight at the camera.";
+      st.className = "small fw-bold text-primary mb-2";
+      st.classList.remove("d-none");
 
       try {
-        const camPromise = !cameraOn
-          ? (facing = "user", camId = "", startBioCamera(true))
-          : Promise.resolve();
+        await loadFaceModels();
+        const det = await faceapi
+          .detectSingleFace($("bioVideo"), new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 }))
+          .withFaceLandmarks()
+          .withFaceDescriptor();
 
-        const [dashRes, loaded] = await Promise.all([
-          fetchDashboardFromServer(pin),
-          loadFaceModels(),
-          camPromise
-        ]);
-
-        if (!dashRes || !dashRes.success) {
-          statusEl.className = "small fw-bold text-danger mb-2";
-          statusEl.textContent = (dashRes && dashRes.message) || "Maling Supervisor PIN.";
+        if (!det) {
+          st.textContent = "No clear face detected. Center face in the oval and try again.";
+          st.className = "small fw-bold text-danger mb-2";
+          isEnrollingNow = false;
           return;
         }
-        if (!loaded) throw new Error("Face AI library failed to load.");
 
-        const empName = empCache[empId] || ("Employee " + empId);
-        statusEl.innerHTML = '<i class="fa-solid fa-face-smile me-1 text-warning"></i>Itapat ang mukha ni <b>' + esc(empName) + '</b>...';
-        $("bioOverlayText").textContent = "Scanning: " + empName;
-        $("bioFaceGuide").style.borderColor = "#f59e0b";
-
-        const avgDescriptor = await captureFastAveragedDescriptor($("bioVideo"), (step, total) => {
-          $("bioOverlayText").textContent = "Capturing (" + step + "/" + total + "): " + empName;
+        const list = getEnrolledEmployees().filter(x => x.id !== id);
+        list.push({
+          id: id,
+          name: empCache[id] || ("Employee " + id),
+          descriptor: Array.from(det.descriptor)
         });
+        saveEnrolledEmployees(list);
+        await pushFacesToCloud(pin);
 
-        if (avgDescriptor) {
-          const list = getEnrolledEmployees().filter(e => e.id !== empId);
-          list.push({
-            id: empId,
-            name: empName,
-            descriptor: avgDescriptor
-          });
-          saveEnrolledEmployees(list);
-          pushFacesToCloud(pin);
-
-          lastEnrollCooldown[empId] = Date.now() + 15000;
-          await stopBioCamera();
-
-          statusEl.className = "small fw-bold text-success mb-2";
-          statusEl.innerHTML = '<i class="fa-solid fa-circle-check me-1"></i>Registered: <b>' + esc(empName) + ' (' + esc(empId) + ')</b>!';
-          setResult(icon("fa-user-check text-success") + 'Registered: <strong>' + esc(empName) + '</strong> (' + esc(empId) + '). Tap <b>START FACE BIO SCANNER</b> kapag gagamitin na.');
-          feedback(true);
-          speakLoud("Registered");
-
-          $("enrollEmpId").value = "";
-          $("enrollPin").value = "";
-        } else {
-          $("bioFaceGuide").style.borderColor = "#dc2626";
-          statusEl.className = "small fw-bold text-danger mb-2";
-          statusEl.textContent = "Walang nabasang mukha. Ilapit nang bahagya sa camera at siguraduhing maliwanag.";
-        }
-      } catch (e) {
-        statusEl.className = "small fw-bold text-danger mb-2";
-        statusEl.textContent = "Error: " + (e.message || "Check camera/internet.");
-      } finally {
-        $("btnCaptureEmpFace").disabled = false;
-        isEnrollingNow = false;
+        st.textContent = "Saved Face Bio for ID " + id + "!";
+        st.className = "small fw-bold text-success mb-2";
+        $("enrollEmpId").value = "";
+        feedback(true);
+      } catch (err) {
+        st.textContent = "Error: " + err.message;
+        st.className = "small fw-bold text-danger mb-2";
       }
+      isEnrollingNow = false;
     }
 
-    /* ---------- MAIN LIVE FACE BIOMETRIC SCANNER + 5-MIN AUTO-OFF ---------- */
-    function startIdleMonitor() {
-      clearInterval(idleCheckTimer);
-      lastBioActivityMs = Date.now();
-      idleCheckTimer = setInterval(async () => {
-        if (!cameraOn || isEnrollingNow) {
-          lastBioActivityMs = Date.now();
-          return;
-        }
-        const idleElapsed = Date.now() - lastBioActivityMs;
-        if (idleElapsed >= IDLE_TIMEOUT_MS) {
-          await stopBioCamera();
-          setResult(icon("fa-moon text-secondary") + "Camera auto-stopped after 5 minutes of inactivity. Tap <b>START FACE BIO SCANNER</b> to scan again.");
-        }
-      }, 5000);
+    /* ---------- PROTECTED DELETE MODAL ---------- */
+    let pendingDelete = null;
+    function promptDeleteAction(type, id, label) {
+      pendingDelete = { type, id, label };
+      $("deleteConfirmTargetText").textContent = "Delete " + label + "?";
+      $("deleteConfirmPin").value = "";
+      $("deleteConfirmError").classList.add("d-none");
+      new bootstrap.Modal($("confirmDeleteModal")).show();
     }
 
-    async function startBioCamera(skipEmptyCheck) {
-      unlockAudio();
-      const enrolled = getEnrolledEmployees();
-      if (!enrolled.length && !skipEmptyCheck) {
-        $("enrollBox").classList.remove("d-none");
-        setResult(ERR + "Wala pang naka-enroll na empleyado. Gamitin muna ang <b>Enroll / Manage Employee Face Bio</b> sa ibaba.");
+    async function executeProtectedDelete() {
+      const pin = $("deleteConfirmPin").value.trim();
+      const errEl = $("deleteConfirmError");
+      if (!pin) {
+        errEl.textContent = "Enter Supervisor PIN.";
+        errEl.classList.remove("d-none");
         return;
       }
-
-      if (!isEnrollingNow) {
-        setResult(SPIN + "Starting Face Biometric camera...");
-      }
-      $("btnStart").disabled = true;
-
       try {
-        const loaded = await loadFaceModels();
-        if (!loaded) throw new Error("Face AI library failed to load.");
+        const verifyRes = await fetch(`${API_URL}?action=dashboard&pin=${encodeURIComponent(pin)}`).then(r => r.json());
+        if (!verifyRes || !verifyRes.success) {
+          errEl.textContent = (verifyRes && verifyRes.message) || "Wrong Supervisor PIN.";
+          errEl.classList.remove("d-none");
+          return;
+        }
+        if (pendingDelete.type === "EMP_ONE") {
+          saveEnrolledEmployees(getEnrolledEmployees().filter(x => x.id !== pendingDelete.id));
+        } else if (pendingDelete.type === "EMP_ALL") {
+          saveEnrolledEmployees([]);
+        } else if (pendingDelete.type === "SUP_ONE") {
+          saveSavedFaceProfiles(getSavedFaceProfiles().filter((_, idx) => String(idx) !== String(pendingDelete.id)));
+        } else if (pendingDelete.type === "SUP_ALL") {
+          saveSavedFaceProfiles([]);
+        }
+        await pushFacesToCloud(pin);
+        bootstrap.Modal.getInstance($("confirmDeleteModal")).hide();
+        feedback(true);
+      } catch (e) {
+        errEl.textContent = "Connection error. Check internet.";
+        errEl.classList.remove("d-none");
+      }
+    }
 
+    /* ---------- MAIN CAMERA & AUTO-SLEEP (5 MINS) ---------- */
+    function resetBioIdleTimer() {
+      lastBioActivityMs = Date.now();
+    }
+
+    async function startBioCamera() {
+      unlockAudio();
+      resetBioIdleTimer();
+      try {
+        if (bioStream) {
+          bioStream.getTracks().forEach(t => t.stop());
+        }
         const constraints = camId
-          ? { video: { deviceId: { exact: camId }, width: { ideal: 480 }, height: { ideal: 480 } }, audio: false }
-          : { video: { facingMode: facing, width: { ideal: 480 }, height: { ideal: 480 } }, audio: false };
+          ? { video: { deviceId: { exact: camId } }, audio: false }
+          : { video: { facingMode: facing }, audio: false };
 
         bioStream = await navigator.mediaDevices.getUserMedia(constraints);
-        const vid = $("bioVideo");
-        vid.srcObject = bioStream;
-        await vid.play();
-
+        $("bioVideo").srcObject = bioStream;
+        $("bioVideo").classList.toggle("mirror", facing === "user");
         cameraOn = true;
-        lastBioActivityMs = Date.now();
+
         $("btnStart").classList.add("d-none");
-        $("btnStop").classList.remove("d-none");
         $("btnSwitch").classList.remove("d-none");
-        await fillCameraList();
-        updateCameraUi();
+        $("btnStop").classList.remove("d-none");
+        $("bioOverlayText").textContent = "Loading AI Face Models...";
 
-        $("bioOverlayText").textContent = "Ready - Look at Camera";
-        if (!isEnrollingNow) {
-          setResult(icon("fa-face-viewfinder text-danger") + "Itapat ang mukha sa camera para mag-Break Out / Break In (Auto-off in 5m)");
+        await loadFaceModels();
+        populateCameraList();
+        $("bioOverlayText").textContent = "Ready - Align Face in Oval";
+
+        if (!bioLoopActive) {
+          bioLoopActive = true;
+          runBioRecognitionLoop();
         }
-
-        startIdleMonitor();
-        startBioRecognitionLoop();
-      } catch (err) {
-        cameraOn = false;
-        setResult(ERR + esc(cameraErrorMessage(err)));
-      } finally {
-        $("btnStart").disabled = false;
-      }
-    }
-
-    async function startBioRecognitionLoop() {
-      bioLoopActive = true;
-      const vid = $("bioVideo");
-      const opts = new faceapi.TinyFaceDetectorOptions({ inputSize: 192, scoreThreshold: 0.48 });
-
-      let streakEmpId = "";
-      let streakCount = 0;
-
-      while (bioLoopActive && cameraOn) {
-        if (!isEnrollingNow && !busy && vid.readyState >= 2) {
-          const enrolled = getEnrolledEmployees();
-          if (enrolled.length > 0) {
-            try {
-              const det = await faceapi.detectSingleFace(vid, opts).withFaceLandmarks().withFaceDescriptor();
-              if (det && det.descriptor) {
-                let bestEmp = null;
-                let bestDist = 999;
-
-                for (let i = 0; i < enrolled.length; i++) {
-                  const dist = faceapi.euclideanDistance(new Float32Array(enrolled[i].descriptor), det.descriptor);
-                  if (dist < bestDist) {
-                    bestDist = dist;
-                    bestEmp = enrolled[i];
-                  }
-                }
-
-                if (bestEmp && bestDist <= STRICT_MATCH_THRESHOLD) {
-                  // Reset 5-minute idle timer kapag may kilalang empleyado na nag-bio
-                  lastBioActivityMs = Date.now();
-
-                  if (lastEnrollCooldown[bestEmp.id] && Date.now() < lastEnrollCooldown[bestEmp.id]) {
-                    const secsLeft = Math.ceil((lastEnrollCooldown[bestEmp.id] - Date.now()) / 1000);
-                    $("bioFaceGuide").style.borderColor = "#3b82f6";
-                    $("bioOverlayText").textContent = "Newly Enrolled (" + secsLeft + "s cooldown)";
-                  } else {
-                    if (streakEmpId === bestEmp.id) {
-                      streakCount++;
-                    } else {
-                      streakEmpId = bestEmp.id;
-                      streakCount = 1;
-                    }
-
-                    if (streakCount >= 2) {
-                      streakEmpId = "";
-                      streakCount = 0;
-                      $("bioFaceGuide").style.borderColor = "#16a34a";
-                      $("bioOverlayText").textContent = "Matched: " + bestEmp.name + " (" + bestEmp.id + ")";
-                      await processEmployeeId(bestEmp.id, true);
-                      setTimeout(() => {
-                        if (cameraOn && !isEnrollingNow) {
-                          $("bioFaceGuide").style.borderColor = "rgba(255,255,255,0.75)";
-                          $("bioOverlayText").textContent = "Ready - Look at Camera";
-                        }
-                      }, 2000);
-                    } else {
-                      $("bioFaceGuide").style.borderColor = "#3b82f6";
-                      $("bioOverlayText").textContent = "Verifying " + bestEmp.name + "...";
-                    }
-                  }
-                } else {
-                  streakEmpId = "";
-                  streakCount = 0;
-                  $("bioFaceGuide").style.borderColor = "#dc2626";
-                  $("bioOverlayText").textContent = "Unknown Face (Not Enrolled)";
-                }
-              } else {
-                streakEmpId = "";
-                streakCount = 0;
-                $("bioFaceGuide").style.borderColor = "rgba(255,255,255,0.75)";
-                $("bioOverlayText").textContent = "Ready - Look at Camera";
-              }
-            } catch (e) {}
+        if (idleCheckTimer) clearInterval(idleCheckTimer);
+        idleCheckTimer = setInterval(() => {
+          if (cameraOn && Date.now() - lastBioActivityMs > IDLE_TIMEOUT_MS) {
+            stopBioCamera("Camera auto-paused after 5 mins idle. Tap START to scan.");
           }
-        }
-        await new Promise(r => setTimeout(r, 120));
+        }, 5000);
+      } catch (err) {
+        setResult(ERR + cameraErrorMessage(err));
       }
     }
 
-    async function stopBioCamera() {
+    function stopBioCamera(msg) {
+      cameraOn = false;
       bioLoopActive = false;
-      clearInterval(idleCheckTimer);
+      if (idleCheckTimer) clearInterval(idleCheckTimer);
       if (bioStream) {
         bioStream.getTracks().forEach(t => t.stop());
         bioStream = null;
       }
-      const vid = $("bioVideo");
-      if (vid) vid.srcObject = null;
-      cameraOn = false;
+      $("bioVideo").srcObject = null;
       $("bioOverlayText").textContent = "Camera Off";
-      $("bioFaceGuide").style.borderColor = "rgba(255,255,255,0.75)";
-      $("btnStop").classList.add("d-none");
-      $("btnSwitch").classList.add("d-none");
-      $("camPicker").classList.add("d-none");
       $("btnStart").classList.remove("d-none");
-    }
-
-    async function fillCameraList() {
-      try {
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        const cams = devices.filter(d => d.kind === "videoinput");
-        const sel = $("camSelect");
-        sel.innerHTML = cams.map(function (c, i) {
-          return '<option value="' + esc(c.deviceId) + '">' + esc(c.label || ("Camera " + (i + 1))) + '</option>';
-        }).join("");
-        let current = "";
-        try {
-          const track = bioStream && bioStream.getVideoTracks()[0];
-          current = (track && track.getSettings().deviceId) || "";
-        } catch (e) {}
-        if (current) sel.value = current;
-        $("camPicker").classList.toggle("d-none", cams.length < 1);
-      } catch (e) {}
-    }
-
-    async function chooseCamera(id) {
-      if (!id) return;
-      camId = id;
-      try { localStorage.setItem("frontCamId", id); } catch (e) {}
-      await stopBioCamera();
-      startBioCamera(true);
-    }
-
-    function updateCameraUi() {
-      let actual = "";
-      try {
-        const track = bioStream && bioStream.getVideoTracks()[0];
-        actual = (track && track.getSettings().facingMode) || "";
-      } catch (e) {}
-      const isFront = actual ? actual === "user" : facing === "user";
-      $("bioVideo").classList.toggle("mirror", isFront);
-      $("switchLabel").textContent = isFront ? "Switch to Back Camera" : "Switch to Front Camera";
+      $("btnSwitch").classList.add("d-none");
+      $("btnStop").classList.add("d-none");
+      if (msg) setResult(icon("fa-moon text-secondary") + esc(msg));
     }
 
     async function switchCamera() {
       facing = facing === "user" ? "environment" : "user";
       camId = "";
-      await stopBioCamera();
-      startBioCamera(true);
+      $("switchLabel").textContent = facing === "user" ? "Switch to Back Camera" : "Switch to Front Camera";
+      await startBioCamera();
     }
 
-    document.addEventListener("visibilitychange", async function () {
-      if (document.hidden && cameraOn) {
-        restartOnReturn = true;
-        await stopBioCamera();
-      } else if (!document.hidden && restartOnReturn) {
-        restartOnReturn = false;
-        startBioCamera(true);
+    async function chooseCamera(id) {
+      camId = id;
+      try { localStorage.setItem("frontCamId", id); } catch (e) {}
+      await startBioCamera();
+    }
+
+    async function populateCameraList() {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const cams = devices.filter(d => d.kind === "videoinput");
+        if (cams.length > 1) {
+          $("camPicker").classList.remove("d-none");
+          $("camSelect").innerHTML = cams.map((c, idx) =>
+            `<option value="${esc(c.deviceId)}" ${c.deviceId === camId ? "selected" : ""}>${esc(c.label || ("Camera " + (idx + 1)))}</option>`
+          ).join("");
+        }
+      } catch (e) {}
+    }
+
+    async function runBioRecognitionLoop() {
+      while (cameraOn && bioLoopActive) {
+        if (!busy && !isEnrollingNow && $("bioVideo").readyState >= 2) {
+          try {
+            const enrolled = getEnrolledEmployees();
+            if (enrolled.length > 0 && faceModelsLoaded) {
+              const det = await faceapi
+                .detectSingleFace($("bioVideo"), new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.55 }))
+                .withFaceLandmarks()
+                .withFaceDescriptor();
+
+              if (det) {
+                resetBioIdleTimer();
+                let bestMatch = null;
+                let bestDist = 1.0;
+
+                for (let i = 0; i < enrolled.length; i++) {
+                  const dist = euclideanDist(det.descriptor, enrolled[i].descriptor);
+                  if (dist < bestDist) {
+                    bestDist = dist;
+                    bestMatch = enrolled[i];
+                  }
+                }
+
+                if (bestMatch && bestDist <= STRICT_MATCH_THRESHOLD) {
+                  $("bioFaceGuide").style.borderColor = "#22c55e";
+                  $("bioOverlayText").textContent = `${bestMatch.id} - ${empCache[bestMatch.id] || bestMatch.name}`;
+                  processScan(bestMatch.id);
+                } else {
+                  $("bioFaceGuide").style.borderColor = "#f59e0b";
+                  $("bioOverlayText").textContent = "Face not recognized";
+                }
+              } else {
+                $("bioFaceGuide").style.borderColor = "rgba(255,255,255,0.75)";
+                $("bioOverlayText").textContent = currentScanMode === "prodout"
+                  ? "PRODUCTION OUT MODE - Align Face"
+                  : "BREAK MODE - Align Face";
+              }
+            }
+          } catch (e) {}
+        }
+        await new Promise(r => setTimeout(r, 450));
       }
-    });
+    }
+
+    /* ---------- PROCESS SCAN (BREAK OR PRODUCTION OUT) ---------- */
+    function processScan(rawCode) {
+      const id = String(rawCode || "").trim();
+      if (!id || busy) return;
+      if (id === lastId && Date.now() - lastTime < 5000) return;
+
+      // Client-side pre-check kapag Production Out mode
+      if (currentScanMode === "prodout") {
+        const st = getProductionOutClientStatus();
+        if (!st.open) {
+          lastId = id; lastTime = Date.now();
+          feedback(false);
+          speakLoud("Not yet time for production out.");
+          setResult(
+            `<div class="text-danger fw-bold">${ERR}HINDI PA ORAS NG PRODUCTION OUT!</div>` +
+            `<div class="small text-dark mt-1">Pwede lang mag-scan pagsapit ng <b>${esc(st.nextLabel)}</b> (${st.minsLeft} mins pa).</div>`
+          );
+          return;
+        }
+      }
+
+      busy = true;
+      lastId = id;
+      lastTime = Date.now();
+      resetBioIdleTimer();
+
+      const cachedName = empCache[id];
+      const modeLabel = currentScanMode === "prodout" ? "Logging Production Out" : "Logging Break";
+      setResult(SPIN + (cachedName ? `${modeLabel} for <b>${esc(cachedName)}</b>...` : `${modeLabel} (${esc(id)})...`));
+
+      callServer(id, currentScanMode)
+        .then(function (res) {
+          busy = false;
+          if (!res || !res.success) {
+            feedback(false);
+            setResult(ERR + esc((res && res.message) || "Scan failed."));
+            return;
+          }
+
+          if (res.name) {
+            empCache[id] = res.name;
+            try { localStorage.setItem("empNameCache", JSON.stringify(empCache)); } catch (e) {}
+          }
+
+          const isOver = res.remarks && res.remarks.indexOf("OVERBREAK") !== -1;
+          feedback(!isOver);
+
+          if (currentScanMode === "prodout") {
+            speakLoud("Production out recorded. Thank you.");
+            setResult(
+              `<div class="text-success fw-bold">${icon("fa-door-open")}PRODUCTION OUT RECORDED</div>` +
+              `<div class="fs-5 fw-bold text-dark mt-1">${esc(res.name)} (${esc(res.id)})</div>` +
+              `<div class="small text-secondary fw-bold">${esc(res.action)} &bull; ${esc(res.time)}</div>` +
+              `<div class="badge bg-success mt-1">${esc(res.remarks)}</div>`
+            );
+            // Ibalik agad sa normal Break Mode pagkatapos mag-log para safe sa susunod na user
+            setTimeout(() => setScanMode("break"), 2500);
+          } else {
+            if (isOver) {
+              speakLoud("Warning! Over break.");
+            } else {
+              speakLoud("Thank you.");
+            }
+            setResult(
+              `<div class="${isOver ? "text-danger" : "text-success"} fw-bold">${icon(isOver ? "fa-triangle-exclamation" : "fa-circle-check")}${esc(res.action)}</div>` +
+              `<div class="fs-5 fw-bold text-dark mt-1">${esc(res.name)} (${esc(res.id)})</div>` +
+              `<div class="small text-secondary fw-bold">${esc(res.time)}${res.duration != null ? " &bull; " + res.duration + " mins" : ""}</div>` +
+              (res.remarks ? `<div class="badge ${isOver ? "bg-danger" : "bg-success"} mt-1">${esc(res.remarks)}</div>` : "")
+            );
+          }
+        })
+        .catch(function () {
+          busy = false;
+          feedback(false);
+          setResult(ERR + "Connection error. Check internet and Apps Script deployment.");
+        });
+    }
 
     function submitManualId() {
       unlockAudio();
-      const val = $("manualEmpId").value.trim();
-      if (!val) return setResult(ERR + "Please enter an Employee ID.");
-      processEmployeeId(val, false);
-      $("manualEmpId").value = "";
+      const inp = $("manualEmpId");
+      const val = inp.value.trim();
+      if (!val) return;
+      inp.value = "";
+      processScan(val);
     }
 
-    function finish() {
-      busy = false;
-    }
-
-    function showServerResult(res, alreadySpoken) {
-      if (res && res.success) {
-        const out = res.action.indexOf("BREAK OUT") !== -1;
-        const isOverbreak = res.remarks && res.remarks.toUpperCase().indexOf("OVERBREAK") !== -1;
-
-        let html = '<h4 class="' + (isOverbreak ? 'text-danger' : 'text-success') + ' mb-2 fw-bold" style="letter-spacing: 2px;">' +
-                   (isOverbreak ? 'OVER BREAK!' : 'THANK YOU!') + '</h4>' +
-                   icon(out ? "fa-person-walking-arrow-right text-warning"
-                            : "fa-person-walking-arrow-loop text-success") +
-                   '<span class="text-dark fw-bold">' + esc(res.name) + '</span><br>' +
-                   '<strong class="' + (out ? 'text-warning' : 'text-success') + '">' + esc(res.action) + '</strong> - ' + esc(res.time);
-        if (!out && res.duration !== undefined) {
-          html += '<br><span class="text-primary fw-bold">Duration: ' + esc(res.duration) + " mins</span>";
-        }
-        if (res.remarks) {
-          html += '<br><span class="badge bg-danger mt-2 fs-6">' + esc(res.remarks) + "</span>";
-        }
-        setResult(html);
-
-        if (isOverbreak) {
-          feedback(false);
-          speakLoud("Warning! Over break.");
-        } else if (!alreadySpoken) {
-          feedback(true);
-          speakLoud("Thank you");
-        }
-      } else {
-        setResult(ERR + esc(res ? res.message : "Unknown error"));
-        feedback(false);
-      }
-    }
-
+    /* ---------- FORGOT TO BREAK IN ---------- */
     function toggleFix() {
       $("fixBox").classList.toggle("d-none");
     }
 
-    async function submitFix() {
-      unlockAudio();
+    function submitFix() {
       const id = $("fixId").value.trim();
-      const time = $("fixTime").value;
+      const time = $("fixTime").value.trim();
       const pin = $("fixPin").value.trim();
       if (!id || !time || !pin) {
-        return setResult(ERR + "Fill in Employee ID, actual break-in time and supervisor PIN.");
-      }
-      setResult(SPIN + "Saving break in for ID: " + esc(id));
-      try {
-        let res;
-        if (inAppsScript()) {
-          res = await new Promise(function (resolve, reject) {
-            google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)
-              .fixBreakIn(id, time, pin);
-          });
-        } else {
-          const url = API_URL + "?fix=in&id=" + encodeURIComponent(id) +
-                      "&time=" + encodeURIComponent(time) + "&pin=" + encodeURIComponent(pin);
-          const t = await (await fetch(url)).text();
-          try { res = JSON.parse(t); } catch (e) { throw new Error("NOT_JSON"); }
-        }
-        showServerResult(res, false);
-        if (res && res.success) {
-          empStateCache[id] = { isOut: false, ts: Date.now() };
-          try { localStorage.setItem("empStateCache", JSON.stringify(empStateCache)); } catch (e) {}
-          $("fixId").value = ""; $("fixTime").value = ""; $("fixPin").value = "";
-          $("fixBox").classList.add("d-none");
-        }
-      } catch (err) {
-        setResult(icon("fa-xmark text-danger") +
-          "Could not save. Check internet and that the Apps Script deployment access is 'Anyone'.");
-        feedback(false);
-      }
-    }
-
-    async function processEmployeeId(empId, fromCamera) {
-      empId = String(empId).trim();
-      if (!empId || busy) return;
-
-      if (empId === lastId && Date.now() - lastTime < 60000) {
-        if (!fromCamera) setResult(icon("fa-clock text-warning") + "Already scanned. Please wait a minute.");
+        setResult(ERR + "Fill out Employee ID, Time, and Supervisor PIN.");
         return;
       }
-
-      busy = true;
-      lastId = empId;
-      lastTime = Date.now();
-      lastBioActivityMs = Date.now();
-
-      const cachedName = empCache[empId];
-      const nowTimeStr = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-      let alreadySpoken = false;
-
-      if (cachedName) {
-        alreadySpoken = true;
-        feedback(true);
-        speakLoud("Thank you");
-
-        const prev = empStateCache[empId];
-        const withinShift = prev && (Date.now() - prev.ts) < (12 * 60 * 60 * 1000);
-        const predictOut = !(withinShift && prev.isOut);
-        const predAction = predictOut ? "BREAK OUT" : "BREAK IN";
-
-        setResult(
-          '<h4 class="text-success mb-2 fw-bold" style="letter-spacing: 2px;">THANK YOU!</h4>' +
-          icon(predictOut ? "fa-person-walking-arrow-right text-warning" : "fa-person-walking-arrow-loop text-success") +
-          '<span class="text-dark fw-bold">' + esc(cachedName) + '</span><br>' +
-          '<strong class="' + (predictOut ? 'text-warning' : 'text-success') + '">' + predAction + '</strong> - ' + esc(nowTimeStr) +
-          '<div class="small text-muted mt-1"><i class="fa-solid fa-cloud-arrow-up me-1"></i>Recording...</div>'
-        );
-      } else {
-        feedback(true);
-        setResult(SPIN + "Reading ID: " + esc(empId) + " - " + esc(nowTimeStr));
-      }
-
-      try {
-        const res = await callServer(empId);
-        if (res && res.name) {
-          empCache[empId] = res.name;
-          try { localStorage.setItem("empNameCache", JSON.stringify(empCache)); } catch (e) {}
-        }
-        if (res && res.success) {
-          const isNowOut = res.action.indexOf("BREAK OUT") !== -1;
-          empStateCache[empId] = { isOut: isNowOut, ts: Date.now() };
-          try { localStorage.setItem("empStateCache", JSON.stringify(empStateCache)); } catch (e) {}
-        }
-        showServerResult(res, alreadySpoken);
-      } catch (err) {
-        lastId = "";
-        let msg;
-        if (!navigator.onLine) {
-          msg = "No internet connection. Check Wi-Fi and try again.";
-        } else if (err && err.message === "NOT_JSON") {
-          msg = "Apps Script answered with a page instead of data. Make sure the deployment is set to 'Who has access: Anyone' and deploy a New version.";
-        } else {
-          msg = "Cannot reach Apps Script. Check that the deployment access is 'Anyone' (not only megasardines.com), then try again.";
-        }
-        setResult(icon("fa-xmark text-danger") + esc(msg));
-        feedback(false);
-      }
-      finish();
+      setResult(SPIN + "Saving manual break-in...");
+      fetch(`${API_URL}?fix=in&id=${encodeURIComponent(id)}&time=${encodeURIComponent(time)}&pin=${encodeURIComponent(pin)}`)
+        .then(r => r.json())
+        .then(res => {
+          if (!res || !res.success) {
+            feedback(false);
+            setResult(ERR + esc((res && res.message) || "Failed to save."));
+            return;
+          }
+          feedback(true);
+          $("fixBox").classList.add("d-none");
+          setResult(`<div class="text-success fw-bold">${icon("fa-check")}Manual Fix Saved: ${esc(res.name)} (${esc(res.remarks)})</div>`);
+        })
+        .catch(() => setResult(ERR + "Connection error."));
     }
 
-    /* ---------- MULTI-SUPERVISOR FACE LOGIN + DASHBOARD ---------- */
-    let dashPin = "";
+    /* ---------- SUPERVISOR FACE LOGIN & DASHBOARD ---------- */
+    let activeDashPin = "";
     let dashData = null;
     let dashFilter = "ALL";
-    let dashRefreshTimer = null;
-    let dashClockTimer = null;
-    let timeOffsetMs = 0;
-
-    let faceStream = null;
-    let faceLoopActive = false;
-    let supDrawerOpen = false;
+    let supStream = null;
 
     function getSavedFaceProfiles() {
-      let list = [];
-      try {
-        const raw = localStorage.getItem("supFaceProfiles");
-        if (raw) list = JSON.parse(raw);
-      } catch (e) {}
-
-      try {
-        const oldDesc = localStorage.getItem("supFaceDescriptor");
-        const oldPin = localStorage.getItem("supFacePin");
-        if (oldDesc && oldPin) {
-          list.push({
-            id: "sup_" + Date.now(),
-            name: "Supervisor 1",
-            descriptor: JSON.parse(oldDesc),
-            pin: oldPin
-          });
-          localStorage.setItem("supFaceProfiles", JSON.stringify(list));
-          localStorage.removeItem("supFaceDescriptor");
-          localStorage.removeItem("supFacePin");
-        }
-      } catch (e) {}
-
-      return Array.isArray(list) ? list : [];
+      try { return JSON.parse(localStorage.getItem("supFaceProfiles") || "[]"); }
+      catch (e) { return []; }
     }
-
-    function saveFaceProfiles(list) {
-      localStorage.setItem("supFaceProfiles", JSON.stringify(list));
+    function saveSavedFaceProfiles(list) {
+      try { localStorage.setItem("supFaceProfiles", JSON.stringify(list)); } catch (e) {}
       renderSavedFacesList();
-    }
-
-    function toggleSupListDrawer() {
-      supDrawerOpen = !supDrawerOpen;
-      const box = $("registeredFacesBox");
-      const chev = $("supDrawerChevron");
-      const count = getSavedFaceProfiles().length;
-
-      box.classList.toggle("d-none", !supDrawerOpen);
-      chev.className = supDrawerOpen ? "fa-solid fa-chevron-up" : "fa-solid fa-chevron-down";
-      $("supDrawerBtnText").innerHTML = (supDrawerOpen ? "Hide Supervisor Faces (" : "Show Supervisor Faces (") + '<span id="faceCountBadge">' + count + '</span>)';
     }
 
     function renderSavedFacesList() {
-      const profiles = getSavedFaceProfiles();
+      const list = getSavedFaceProfiles();
       const sec = $("registeredFacesSection");
-      const box = $("registeredFacesBox");
-      const listEl = $("registeredFacesList");
-
-      if (!profiles.length) {
-        sec.classList.add("d-none");
-        supDrawerOpen = false;
-        box.classList.add("d-none");
-        listEl.innerHTML = "";
-        return;
-      }
-
+      if (!list.length) { sec.classList.add("d-none"); return; }
       sec.classList.remove("d-none");
-      $("supDrawerBtnText").innerHTML = (supDrawerOpen ? "Hide Supervisor Faces (" : "Show Supervisor Faces (") + '<span id="faceCountBadge">' + profiles.length + '</span>)';
-
-      listEl.innerHTML = profiles.map(p =>
-        '<div class="list-group-item px-1 py-1 d-flex justify-content-between align-items-center bg-transparent">' +
-          '<span><i class="fa-solid fa-user-check text-success me-1"></i><strong>' + esc(p.name) + '</strong></span>' +
-          '<button type="button" class="btn btn-outline-danger btn-sm py-0 px-2" onclick="promptDeleteAction(\'SUP_ONE\', \'' + esc(p.id) + '\', \'' + esc(p.name) + '\')" title="Requires Password">' +
-            '<i class="fa-solid fa-trash-can"></i>' +
-          '</button>' +
-        '</div>'
+      $("faceCountBadge").textContent = list.length;
+      $("registeredFacesList").innerHTML = list.map((p, idx) =>
+        `<div class="list-group-item d-flex justify-content-between align-items-center px-1 py-1">
+          <span><b>${esc(p.label)}</b></span>
+          <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="promptDeleteAction('SUP_ONE', '${idx}', '${esc(p.label)}')">
+            <i class="fa-solid fa-trash"></i>
+          </button>
+        </div>`
       ).join("");
     }
 
-    function stopFaceCamera() {
-      faceLoopActive = false;
-      if (faceStream) {
-        faceStream.getTracks().forEach(t => t.stop());
-        faceStream = null;
-      }
-      const vid = $("faceVideo");
-      if (vid) vid.srcObject = null;
+    function toggleSupListDrawer() {
+      const b = $("registeredFacesBox");
+      const c = $("supDrawerChevron");
+      b.classList.toggle("d-none");
+      c.className = b.classList.contains("d-none") ? "fa-solid fa-chevron-down" : "fa-solid fa-chevron-up";
     }
 
-    async function startFaceCamera() {
-      const vid = $("faceVideo");
-      faceStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "user", width: { ideal: 480 }, height: { ideal: 480 } },
-        audio: false
-      });
-      vid.srcObject = faceStream;
-      await vid.play();
-    }
-
-    async function openDashboardAuth() {
-      if (cameraOn) {
-        restartOnReturn = true;
-        await stopBioCamera();
-      }
-
-      dashPin = "";
-      $("dashPinInput").value = "";
-      $("faceLabelInput").value = "";
-      $("pinError").classList.add("d-none");
-
-      supDrawerOpen = false;
-      $("registeredFacesBox").classList.add("d-none");
-      $("supDrawerChevron").className = "fa-solid fa-chevron-down";
-
-      const profiles = getSavedFaceProfiles();
+    function openDashboardAuth() {
       renderSavedFacesList();
-
-      const modalEl = $("pinModal");
-      const modal = new bootstrap.Modal(modalEl);
-      modal.show();
-
-      modalEl.addEventListener("hidden.bs.modal", function () {
-        stopFaceCamera();
-        if (restartOnReturn && !dashPin) {
-          restartOnReturn = false;
-          startBioCamera(true);
-        }
-      }, { once: true });
-
-      if (profiles.length > 0) {
-        $("faceCameraSection").classList.remove("d-none");
-        $("pinPromptLabel").textContent = "Look at camera to unlock — or enter PIN to open / add supervisor";
-        startFaceVerification(profiles);
-      } else {
-        $("faceCameraSection").classList.add("d-none");
-        $("pinPromptLabel").textContent = "Enter Supervisor PIN to open or register a Face";
-        setTimeout(() => $("dashPinInput").focus(), 400);
-      }
+      $("pinError").classList.add("d-none");
+      new bootstrap.Modal($("pinModal")).show();
     }
 
     async function startFaceRegistration() {
-      const entered = $("dashPinInput").value.trim();
-      if (!entered) {
-        $("pinError").textContent = "I-type muna ang Supervisor PIN bago mag-Register Face.";
-        $("pinError").classList.remove("d-none");
-        $("dashPinInput").focus();
+      const pin = $("dashPinInput").value.trim();
+      const label = $("faceLabelInput").value.trim() || "Supervisor";
+      const errEl = $("pinError");
+      if (!pin) {
+        errEl.textContent = "Enter Supervisor PIN first.";
+        errEl.classList.remove("d-none");
         return;
       }
-
-      stopFaceCamera();
-
-      const existing = getSavedFaceProfiles();
-      const labelName = ($("faceLabelInput").value || "").trim() || ("Supervisor " + (existing.length + 1));
-
-      $("btnRegisterFace").disabled = true;
-      $("pinError").classList.add("d-none");
-      $("faceCameraSection").classList.remove("d-none");
-      $("faceCamWrap").style.borderColor = "#f59e0b";
-      $("faceStatusText").className = "fw-bold text-primary small mb-2";
-      $("faceStatusText").innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i>Verifying PIN & starting camera...';
-
       try {
-        const [res, loaded] = await Promise.all([
-          fetchDashboardFromServer(entered),
-          loadFaceModels(),
-          startFaceCamera()
-        ]);
-
+        const res = await fetch(`${API_URL}?action=dashboard&pin=${encodeURIComponent(pin)}`).then(r => r.json());
         if (!res || !res.success) {
-          if (!existing.length) $("faceCameraSection").classList.add("d-none");
-          $("pinError").textContent = (res && res.message) || "Wrong Supervisor PIN.";
-          $("pinError").classList.remove("d-none");
-          stopFaceCamera();
+          errEl.textContent = "Wrong Supervisor PIN.";
+          errEl.classList.remove("d-none");
           return;
         }
-        if (!loaded) throw new Error("Face AI library failed to load. Check internet.");
+        $("faceCameraSection").classList.remove("d-none");
+        $("faceStatusText").textContent = "Look at camera to register...";
+        supStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
+        $("faceVideo").srcObject = supStream;
+        await loadFaceModels();
+        await new Promise(r => setTimeout(r, 900));
 
-        $("faceStatusText").innerHTML = '<i class="fa-solid fa-face-smile me-1 text-warning"></i>Itapat ang mukha ni <b>' + esc(labelName) + '</b>...';
+        const det = await faceapi
+          .detectSingleFace($("faceVideo"), new faceapi.TinyFaceDetectorOptions())
+          .withFaceLandmarks()
+          .withFaceDescriptor();
 
-        const avgDescriptor = await captureFastAveragedDescriptor($("faceVideo"), (step, total) => {
-          $("faceStatusText").innerHTML = '<i class="fa-solid fa-face-smile me-1 text-warning"></i>Capturing (' + step + '/' + total + '): <b>' + esc(labelName) + '</b>...';
-        });
+        supStream.getTracks().forEach(t => t.stop());
+        $("faceCameraSection").classList.add("d-none");
 
-        if (avgDescriptor) {
-          const updatedList = getSavedFaceProfiles();
-          updatedList.push({
-            id: "sup_" + Date.now(),
-            name: labelName,
-            descriptor: avgDescriptor,
-            pin: entered
-          });
-          saveFaceProfiles(updatedList);
-          pushFacesToCloud(entered);
-
-          stopFaceCamera();
-          $("faceCameraSection").classList.add("d-none");
-          $("pinError").className = "text-success small fw-bold mb-2";
-          $("pinError").textContent = labelName + " Registered! Pwede ka nang mag-login gamit ang mukha o PIN.";
-          $("pinError").classList.remove("d-none");
-          feedback(true);
-
-          $("dashPinInput").value = "";
-          $("faceLabelInput").value = "";
-        } else {
-          $("faceStatusText").className = "fw-bold text-danger small mb-2";
-          $("faceStatusText").textContent = "Walang nabasang mukha. Ilapit nang bahagya at subukan ulit.";
-          stopFaceCamera();
+        if (!det) {
+          errEl.textContent = "No face detected. Try again.";
+          errEl.classList.remove("d-none");
+          return;
         }
+        const profiles = getSavedFaceProfiles();
+        profiles.push({ label: label, descriptor: Array.from(det.descriptor), pin: pin });
+        saveSavedFaceProfiles(profiles);
+        await pushFacesToCloud(pin);
+        errEl.className = "text-success small fw-bold mb-2";
+        errEl.textContent = "Supervisor face registered!";
+        errEl.classList.remove("d-none");
       } catch (e) {
-        if (!existing.length) $("faceCameraSection").classList.add("d-none");
-        $("pinError").textContent = "Camera/AI Error: " + (e.message || "Allow camera permission in Chrome/Safari.");
-        $("pinError").classList.remove("d-none");
-        stopFaceCamera();
-      } finally {
-        $("btnRegisterFace").disabled = false;
+        errEl.textContent = "Error: " + e.message;
+        errEl.classList.remove("d-none");
       }
     }
 
-    async function startFaceVerification(profiles) {
-      $("faceCamWrap").style.borderColor = "#dc2626";
-      $("faceStatusText").className = "fw-bold text-primary small mb-2";
-      $("faceStatusText").innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i>Opening face camera...';
+    function verifyDashboardPin() {
+      const pin = $("dashPinInput").value.trim();
+      if (!pin) return;
+      activeDashPin = pin;
+      loadDashboardData(true);
+    }
 
-      try {
-        const [loaded] = await Promise.all([
-          loadFaceModels(),
-          startFaceCamera()
-        ]);
-        if (!loaded) throw new Error("AI models not loaded.");
+    function setDashFilter(f) {
+      dashFilter = f;
+      ["filterAll", "filterRegular", "filterAgency"].forEach(id => $(id).classList.remove("active"));
+      if (f === "ALL") $("filterAll").classList.add("active");
+      if (f === "Regular") $("filterRegular").classList.add("active");
+      if (f === "Agency") $("filterAgency").classList.add("active");
+      renderDashboardTables();
+    }
 
-        const defaultPin = profiles[profiles.length - 1].pin;
-        const dashPromise = fetchDashboardFromServer(defaultPin).catch(() => null);
-
-        $("faceStatusText").innerHTML = '<i class="fa-solid fa-face-viewfinder me-1 text-danger"></i>Scanning face (' + profiles.length + ' registered)...';
-
-        const prepared = profiles.map(p => ({
-          name: p.name,
-          pin: p.pin,
-          floatDesc: new Float32Array(p.descriptor)
-        }));
-
-        const vid = $("faceVideo");
-        const opts = new faceapi.TinyFaceDetectorOptions({ inputSize: 192, scoreThreshold: 0.48 });
-
-        faceLoopActive = true;
-        let attempts = 0;
-        let streakName = "";
-        let streakCount = 0;
-
-        while (faceLoopActive && attempts < 65) {
-          attempts++;
-          if (vid.readyState >= 2) {
-            const det = await faceapi.detectSingleFace(vid, opts).withFaceLandmarks().withFaceDescriptor();
-            if (det && det.descriptor) {
-              let bestMatch = null;
-              let bestDist = 999;
-
-              for (let i = 0; i < prepared.length; i++) {
-                const d = faceapi.euclideanDistance(prepared[i].floatDesc, det.descriptor);
-                if (d < bestDist) {
-                  bestDist = d;
-                  bestMatch = prepared[i];
-                }
-              }
-
-              if (bestMatch && bestDist <= STRICT_MATCH_THRESHOLD) {
-                if (streakName === bestMatch.name) streakCount++;
-                else { streakName = bestMatch.name; streakCount = 1; }
-
-                if (streakCount >= 2) {
-                  $("faceCamWrap").style.borderColor = "#16a34a";
-                  $("faceStatusText").className = "fw-bold text-success small mb-2";
-                  $("faceStatusText").innerHTML = '<i class="fa-solid fa-circle-check me-1"></i>Verified: ' + esc(bestMatch.name) + '!';
-                  feedback(true);
-
-                  const res = (bestMatch.pin === defaultPin ? (await dashPromise) : null) ||
-                              (await fetchDashboardFromServer(bestMatch.pin));
-                  stopFaceCamera();
-
-                  if (res && res.success) {
-                    dashPin = bestMatch.pin;
-                    dashData = res;
-                    timeOffsetMs = res.serverNowMs - Date.now();
-                    bootstrap.Modal.getInstance($("pinModal")).hide();
-                    openDashboardModal(true);
-                  } else {
-                    $("pinError").textContent = "Supervisor PIN changed on server. Enter new PIN below.";
-                    $("pinError").classList.remove("d-none");
-                  }
-                  return;
-                }
-              } else {
-                streakName = "";
-                streakCount = 0;
-                $("faceStatusText").className = "fw-bold text-warning small mb-2";
-                $("faceStatusText").textContent = "Unrecognized face. Look directly at camera or use PIN.";
-              }
-            }
+    function loadDashboardData(fromModal) {
+      if (!activeDashPin) return;
+      fetch(`${API_URL}?action=dashboard&pin=${encodeURIComponent(activeDashPin)}`)
+        .then(r => r.json())
+        .then(res => {
+          if (!res || !res.success) {
+            $("pinError").textContent = (res && res.message) || "Wrong PIN.";
+            $("pinError").classList.remove("d-none");
+            return;
           }
-          await new Promise(r => setTimeout(r, 120));
-        }
-
-        if (faceLoopActive) {
-          $("faceStatusText").className = "fw-bold text-danger small mb-2";
-          $("faceStatusText").textContent = "Face not recognized. Enter Supervisor PIN below to open or add your face.";
-          stopFaceCamera();
-        }
-      } catch (e) {
-        $("faceStatusText").className = "fw-bold text-danger small mb-2";
-        $("faceStatusText").textContent = "Camera unavailable. Use Supervisor PIN below.";
-        stopFaceCamera();
-      }
-    }
-
-    async function verifyDashboardPin() {
-      const entered = $("dashPinInput").value.trim();
-      if (!entered) {
-        $("pinError").textContent = "Please enter the Supervisor PIN.";
-        $("pinError").classList.remove("d-none");
-        return;
-      }
-
-      $("btnUnlockDash").disabled = true;
-      $("btnUnlockDash").innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i>Checking...';
-      $("pinError").classList.add("d-none");
-
-      try {
-        const res = await fetchDashboardFromServer(entered);
-        if (res && res.success) {
-          stopFaceCamera();
-          dashPin = entered;
+          if (fromModal) {
+            const pm = bootstrap.Modal.getInstance($("pinModal"));
+            if (pm) pm.hide();
+            new bootstrap.Modal($("dashboardModal")).show();
+          }
           dashData = res;
-          timeOffsetMs = res.serverNowMs - Date.now();
-          $("dashPinInput").value = "";
-          bootstrap.Modal.getInstance($("pinModal")).hide();
-          openDashboardModal(true);
-        } else {
-          $("pinError").textContent = (res && res.message) || "Wrong PIN.";
-          $("pinError").classList.remove("d-none");
-        }
-      } catch (e) {
-        $("pinError").textContent = "Connection error. Check internet or deployment.";
-        $("pinError").classList.remove("d-none");
-      } finally {
-        $("btnUnlockDash").disabled = false;
-        $("btnUnlockDash").innerHTML = '<i class="fa-solid fa-unlock me-1"></i>Open with PIN';
-      }
-    }
-
-    function openDashboardModal(skipFirstFetch) {
-      const modalEl = $("dashboardModal");
-      const modal = new bootstrap.Modal(modalEl);
-      modal.show();
-
-      if (skipFirstFetch && dashData) {
-        updateDashboardUI();
-      } else {
-        loadDashboardData();
-      }
-
-      clearInterval(dashRefreshTimer);
-      dashRefreshTimer = setInterval(loadDashboardData, 20000);
-
-      clearInterval(dashClockTimer);
-      dashClockTimer = setInterval(updateLiveTimers, 1000);
-
-      modalEl.addEventListener("hidden.bs.modal", function () {
-        clearInterval(dashRefreshTimer);
-        clearInterval(dashClockTimer);
-        dashPin = "";
-        if (restartOnReturn) {
-          restartOnReturn = false;
-          startBioCamera(true);
-        }
-      }, { once: true });
-    }
-
-    function fetchDashboardFromServer(pin) {
-      if (inAppsScript()) {
-        return new Promise(function (resolve, reject) {
-          google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).getDashboardData(pin);
-        });
-      }
-      return fetch(API_URL + "?action=dashboard&pin=" + encodeURIComponent(pin)).then(r => r.json());
-    }
-
-    async function loadDashboardData() {
-      if (!dashPin) return;
-      const spinIcon = $("dashSpinIcon");
-      if (spinIcon) spinIcon.classList.add("fa-spin");
-
-      try {
-        const res = await fetchDashboardFromServer(dashPin);
-        if (res && res.success) {
-          dashData = res;
-          timeOffsetMs = res.serverNowMs - Date.now();
-          updateDashboardUI();
-        } else if (res && !res.success) {
-          dashPin = "";
-          bootstrap.Modal.getInstance($("dashboardModal")).hide();
-        }
-      } catch (e) {
-        $("dashLastUpdated").textContent = "Failed to refresh. Retrying...";
-      } finally {
-        if (spinIcon) spinIcon.classList.remove("fa-spin");
-      }
-    }
-
-    function setDashFilter(filter) {
-      dashFilter = filter;
-      $("filterAll").className = filter === "ALL" ? "btn btn-dark fw-bold px-3 py-2 active" : "btn btn-outline-dark fw-bold px-3 py-2";
-      $("filterRegular").className = filter === "Regular" ? "btn btn-primary fw-bold px-3 py-2 active" : "btn btn-outline-primary fw-bold px-3 py-2";
-      $("filterAgency").className = filter === "Agency" ? "btn btn-warning text-dark fw-bold px-3 py-2 active" : "btn btn-outline-warning text-dark fw-bold px-3 py-2";
-      renderDashboardTables();
-    }
-
-    function updateDashboardUI() {
-      if (!dashData) return;
-      $("statOnRegular").textContent = dashData.stats.onBreakRegular;
-      $("statOnAgency").textContent = dashData.stats.onBreakAgency;
-      $("statCompleted").textContent = dashData.stats.completedShift;
-      $("statOverbreak").textContent = dashData.stats.overbreakShift;
-
-      const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-      $("dashLastUpdated").textContent = "Last updated: " + nowStr + " (Auto-refreshes every 20s)";
-      renderDashboardTables();
-    }
-
-    function formatElapsed(ms) {
-      const totalSec = Math.max(0, Math.floor(ms / 1000));
-      const mins = Math.floor(totalSec / 60);
-      const secs = totalSec % 60;
-      return mins + "m " + (secs < 10 ? "0" : "") + secs + "s";
+          $("dashLastUpdated").textContent = "Updated: " + new Date().toLocaleTimeString();
+          $("statOnRegular").textContent = res.stats.onBreakRegular;
+          $("statOnAgency").textContent = res.stats.onBreakAgency;
+          $("statCompleted").textContent = res.stats.completedShift;
+          $("statOverbreak").textContent = res.stats.overbreakShift;
+          renderDashboardTables();
+        })
+        .catch(() => {});
     }
 
     function renderDashboardTables() {
       if (!dashData) return;
-      const q = ($("dashSearch").value || "").trim().toLowerCase();
-
-      const matchesFilter = item => {
+      const q = ($("dashSearch").value || "").toLowerCase();
+      const filterFn = item => {
         if (dashFilter !== "ALL" && item.status !== dashFilter) return false;
         if (!q) return true;
-        return (item.name && item.name.toLowerCase().indexOf(q) !== -1) ||
-               (item.id && item.id.toLowerCase().indexOf(q) !== -1) ||
-               (item.position && item.position.toLowerCase().indexOf(q) !== -1);
+        return String(item.id).toLowerCase().includes(q) ||
+               String(item.name).toLowerCase().includes(q) ||
+               String(item.position).toLowerCase().includes(q);
       };
 
-      const filteredOnBreak = dashData.onBreak.filter(matchesFilter);
-      $("onBreakBadge").textContent = filteredOnBreak.length;
+      const onBreakFiltered = dashData.onBreak.filter(filterFn);
+      $("onBreakBadge").textContent = onBreakFiltered.length;
+      $("onBreakTbody").innerHTML = onBreakFiltered.length
+        ? onBreakFiltered.map(item => {
+            const elapsed = Math.max(0, Math.floor((Date.now() - item.tsMs) / 60000));
+            const over = elapsed > item.limitMins;
+            return `<tr class="${over ? "table-danger" : ""}">
+              <td class="fw-bold">${esc(item.id)}</td>
+              <td class="fw-bold">${esc(item.name)}</td>
+              <td>${esc(item.position)}</td>
+              <td><span class="badge ${item.status === "Agency" ? "bg-warning text-dark" : "bg-primary"}">${esc(item.status)}</span></td>
+              <td>${esc(item.breakType)}</td>
+              <td>${esc(item.timeStr)}</td>
+              <td class="fw-bold ${over ? "text-danger" : "text-success"}">${elapsed}m / ${item.limitMins}m</td>
+            </tr>`;
+          }).join("")
+        : `<tr><td colspan="7" class="text-center text-muted py-4">No employees currently on break.</td></tr>`;
 
-      if (!filteredOnBreak.length) {
-        $("onBreakTbody").innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4 fs-5">No employees currently on break.</td></tr>';
-      } else {
-        const nowAdjusted = Date.now() + timeOffsetMs;
-        $("onBreakTbody").innerHTML = filteredOnBreak.map(item => {
-          const elapsedMs = nowAdjusted - item.tsMs;
-          const elapsedMins = Math.floor(elapsedMs / 60000);
-          const isOver = elapsedMins > item.limitMins;
-          const statusBadge = item.status === "Agency"
-            ? '<span class="badge bg-warning text-dark">Agency</span>'
-            : '<span class="badge bg-primary">Regular</span>';
-
-          return '<tr class="' + (isOver ? 'table-danger' : '') + '">' +
-            '<td class="fw-bold">' + esc(item.id) + '</td>' +
-            '<td class="fw-bold">' + esc(item.name) + '</td>' +
-            '<td>' + esc(item.position || '-') + '</td>' +
-            '<td>' + statusBadge + '</td>' +
-            '<td><span class="badge bg-secondary">' + esc(item.breakType) + '</span></td>' +
-            '<td>' + esc(item.timeStr) + '</td>' +
-            '<td class="live-timer fw-bold ' + (isOver ? 'text-danger' : 'text-success') + '" data-ts="' + item.tsMs + '" data-limit="' + item.limitMins + '">' +
-              formatElapsed(elapsedMs) + ' / ' + item.limitMins + 'm' +
-              (isOver ? ' <span class="badge bg-danger ms-1">OVERDUE</span>' : '') +
-            '</td>' +
-          '</tr>';
-        }).join("");
-      }
-
-      const filteredLogs = dashData.recentLogs.filter(matchesFilter);
-      if (!filteredLogs.length) {
-        $("recentLogsTbody").innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4 fs-5">No break logs found for this filter.</td></tr>';
-      } else {
-        $("recentLogsTbody").innerHTML = filteredLogs.map(item => {
-          const isOut = item.action === "BREAK OUT";
-          const isOver = item.remarks && item.remarks.toUpperCase().indexOf("OVERBREAK") !== -1;
-          const statusBadge = item.status === "Agency"
-            ? '<span class="badge bg-warning text-dark">Agency</span>'
-            : '<span class="badge bg-primary">Regular</span>';
-          const actionBadge = isOut
-            ? '<span class="badge bg-warning text-dark">BREAK OUT</span>'
-            : '<span class="badge bg-success">BREAK IN</span>';
-
-          let remarkBadge = "";
-          if (isOver) remarkBadge = '<span class="badge bg-danger">' + esc(item.remarks) + '</span>';
-          else if (item.remarks === "OK") remarkBadge = '<span class="badge bg-success">OK</span>';
-          else if (item.remarks) remarkBadge = '<span class="badge bg-secondary">' + esc(item.remarks) + '</span>';
-
-          return '<tr>' +
-            '<td>' + esc(item.timeStr) + '</td>' +
-            '<td class="fw-bold">' + esc(item.id) + '</td>' +
-            '<td class="fw-bold">' + esc(item.name) + '</td>' +
-            '<td>' + esc(item.position || '-') + '</td>' +
-            '<td>' + statusBadge + '</td>' +
-            '<td>' + actionBadge + ' <small class="text-muted">(' + esc(item.breakType) + ')</small></td>' +
-            '<td class="fw-bold">' + (item.duration !== null ? esc(item.duration) + ' mins' : '-') + '</td>' +
-            '<td>' + remarkBadge + '</td>' +
-          '</tr>';
-        }).join("");
-      }
-    }
-
-    function updateLiveTimers() {
-      const cells = document.querySelectorAll(".live-timer");
-      if (!cells.length) return;
-      const nowAdjusted = Date.now() + timeOffsetMs;
-
-      cells.forEach(td => {
-        const tsMs = Number(td.getAttribute("data-ts"));
-        const limit = Number(td.getAttribute("data-limit"));
-        const elapsedMs = nowAdjusted - tsMs;
-        const isOver = Math.floor(elapsedMs / 60000) > limit;
-
-        td.className = "live-timer fw-bold " + (isOver ? "text-danger" : "text-success");
-        td.innerHTML = formatElapsed(elapsedMs) + " / " + limit + "m" +
-          (isOver ? ' <span class="badge bg-danger ms-1">OVERDUE</span>' : "");
-        const tr = td.closest("tr");
-        if (tr) tr.classList.toggle("table-danger", isOver);
-      });
+      const logsFiltered = dashData.recentLogs.filter(filterFn);
+      $("recentLogsTbody").innerHTML = logsFiltered.length
+        ? logsFiltered.map(r => {
+            const over = r.remarks && r.remarks.includes("OVERBREAK");
+            return `<tr>
+              <td>${esc(r.timeStr)}</td>
+              <td class="fw-bold">${esc(r.id)}</td>
+              <td>${esc(r.name)}</td>
+              <td>${esc(r.position)}</td>
+              <td><span class="badge ${r.status === "Agency" ? "bg-warning text-dark" : "bg-primary"}">${esc(r.status)}</span></td>
+              <td class="fw-bold">${esc(r.action)}</td>
+              <td>${r.duration != null ? r.duration + "m" : "-"}</td>
+              <td><span class="badge ${over ? "bg-danger" : "bg-success"}">${esc(r.remarks)}</span></td>
+            </tr>`;
+          }).join("")
+        : `<tr><td colspan="8" class="text-center text-muted py-4">No logs found.</td></tr>`;
     }
   </script>
 </body>
