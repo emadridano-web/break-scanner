@@ -517,9 +517,9 @@
     const API_URL = "https://script.google.com/macros/s/AKfycbyTMnYv-UpwMECFwCqn9aMNIPG5d9E_Uk2AFMMBNpdGfaSly5yBg_y1jbcxeKy0kYFlcQ/exec";
 
     // ULTRA-STRICT BIOMETRIC THRESHOLD (0.34 = hindi magkakamali sa kahawig na empleyado)
-    const STRICT_MATCH_THRESHOLD = 0.34;
+    const STRICT_MATCH_THRESHOLD = 0.38;
     // 2-STEP FACE LOCK: Kailangan 2 beses magkasunod na tugma bago mag-log
-    const REQUIRED_CONSECUTIVE_MATCHES = 2;
+    const REQUIRED_CONSECUTIVE_MATCHES = 1;
 
     const IDLE_TIMEOUT_MS = 5 * 60 * 1000;
     const SHIFT_OUT_HOURS = [6, 15, 18]; // 6:00 AM, 3:00 PM, 6:00 PM
@@ -889,7 +889,7 @@
       try {
         await loadFaceModels();
         const det = await faceapi
-          .detectSingleFace($("bioVideo"), new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.72 }))
+          .detectSingleFace($("bioVideo"), new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.60 }))
           .withFaceLandmarks()
           .withFaceDescriptor();
 
@@ -1113,7 +1113,7 @@
             resetPendingFaceLock();
           }
         }
-        await new Promise(r => setTimeout(r, 380));
+        await new Promise(r => setTimeout(r, 250));
       }
     }
 
