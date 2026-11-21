@@ -55,7 +55,7 @@
         <button class="btn btn-dark btn-sm fw-bold shadow-sm px-3 py-2" onclick="openDashboardAuth()">
           <i class="fa-solid fa-chart-pie me-1 text-warning"></i>Dashboard
         </button>
-        <div class="mt-1"><small class="badge bg-danger">v37 Fast 0.38 + Prod Out Lock</small></div>
+        <div class="mt-1"><small class="badge bg-danger">v38 Auto-Close Reg + 1m Cooldown</small></div>
       </div>
     </div>
   </header>
@@ -108,7 +108,7 @@
               <i class="fa-solid fa-user-plus me-2 text-warning"></i>Enroll / Manage Employee Face Bio
             </button>
             <div id="enrollBox" class="d-none p-3 border border-dark rounded bg-light mb-2">
-              <div class="small text-dark fw-bold mb-2"><i class="fa-solid fa-id-badge text-danger me-1"></i>Fast Register Employee Face</div>
+              <div class="small text-dark fw-bold mb-2"><i class="fa-solid fa-id-badge text-danger me-1"></i>Fast Register Employee Face (Auto-Closes Camera After Save)</div>
               <input type="text" id="enrollEmpId" class="form-control mb-2" placeholder="Employee ID (e.g. 001)" inputmode="numeric">
               <input type="tel" id="enrollPin" name="enroll_pin_noconflict" autocomplete="one-time-code" class="form-control mb-2" style="-webkit-text-security:disc;" placeholder="Supervisor PIN" inputmode="numeric">
               <div id="enrollStatus" class="small fw-bold text-primary mb-2 d-none"></div>
@@ -286,6 +286,7 @@
   <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbyTMnYv-UpwMECFwCqn9aMNIPG5d9E_Uk2AFMMBNpdGfaSly5yBg_y1jbcxeKy0kYFlcQ/exec";
     const STRICT_MATCH_THRESHOLD = 0.38;
+    const SAME_EMP_COOLDOWN_MS = 60 * 1000; // 1 MINUTE COOLDOWN BAGO BASAHIN ULIT ANG SAME FACE
     const IDLE_TIMEOUT_MS = 5 * 60 * 1000;
     const SHIFT_OUT_HOURS = [6, 15, 18];
     const PROD_OUT_GRACE_WINDOW_MINS = 120;
@@ -296,7 +297,12 @@
     let lastBioActivityMs = Date.now(), idleCheckTimer = null;
     let facing = "user", camId = "";
     try { camId = localStorage.getItem("frontCamId") || ""; } catch (e) {}
-    let lastId = "", lastTime = 0, audioCtx = null;
+    let audioCtx = null;
+
+    // Per-employee 1-minute cooldown tracker (persisted in localStorage)
+    let empCooldownMap = {};
+    try { empCooldownMap = JSON.parse(localStorage.getItem("empCooldownMap") || "{}"); } catch (e) {}
+
     let empCache = {}, empLastBreakCache = {};
     try { empCache = JSON.parse(localStorage.getItem("empNameCache") || "{}"); } catch (e) {}
     try { empLastBreakCache = JSON.parse(localStorage.getItem("empLastBreakCache") || "{}"); } catch (e) {}
@@ -307,6 +313,19 @@
     const setResult = html => { $("result").innerHTML = html; };
     const SPIN = icon("fa-spinner fa-spin text-warning");
     const ERR = icon("fa-triangle-exclamation text-danger");
+
+    function setEmpCooldown(id) {
+      empCooldownMap[id] = Date.now();
+      try { localStorage.setItem("empCooldownMap", JSON.stringify(empCooldownMap)); } catch (e) {}
+    }
+
+    function getEmpCooldownRemainingSec(id) {
+      const lastTs = Number(empCooldownMap[id] || 0);
+      if (!lastTs) return 0;
+      const diff = Date.now() - lastTs;
+      if (diff >= SAME_EMP_COOLDOWN_MS) return 0;
+      return Math.ceil((SAME_EMP_COOLDOWN_MS - diff) / 1000);
+    }
 
     function getProductionOutClientStatus() {
       const now = new Date(), nowMs = now.getTime();
@@ -501,24 +520,69 @@
       $("enrolledDrawerChevron").className = d.classList.contains("d-none") ? "fa-solid fa-chevron-down" : "fa-solid fa-chevron-up";
     }
 
+    /* ---------- ENROLL EMPLOYEE FACE (AUTO-CLOSES CAMERA + 1-MIN COOLDOWN) ---------- */
     async function enrollEmployeeFace() {
       const id = $("enrollEmpId").value.trim(), pin = $("enrollPin").value.trim(), st = $("enrollStatus");
-      if (!id || !pin) { st.textContent = "Enter Employee ID and Supervisor PIN."; st.className = "small fw-bold text-danger mb-2"; st.classList.remove("d-none"); return; }
-      if (!cameraOn) { st.textContent = "Start camera first."; st.className = "small fw-bold text-danger mb-2"; st.classList.remove("d-none"); return; }
+      if (!id || !pin) {
+        st.textContent = "Enter Employee ID and Supervisor PIN.";
+        st.className = "small fw-bold text-danger mb-2";
+        st.classList.remove("d-none");
+        return;
+      }
+      if (!cameraOn) {
+        st.textContent = "Start camera first before capturing face.";
+        st.className = "small fw-bold text-danger mb-2";
+        st.classList.remove("d-none");
+        return;
+      }
+
       isEnrollingNow = true;
-      st.textContent = "Scanning face... Look straight at the camera."; st.className = "small fw-bold text-primary mb-2"; st.classList.remove("d-none");
+      st.textContent = "Scanning face... Look straight at the camera.";
+      st.className = "small fw-bold text-primary mb-2";
+      st.classList.remove("d-none");
+
       try {
         await loadFaceModels();
-        const det = await faceapi.detectSingleFace($("bioVideo"), new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.60 })).withFaceLandmarks().withFaceDescriptor();
-        if (!det) { st.textContent = "No clear face detected. Try again."; st.className = "small fw-bold text-danger mb-2"; isEnrollingNow = false; return; }
+        const det = await faceapi
+          .detectSingleFace($("bioVideo"), new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.60 }))
+          .withFaceLandmarks()
+          .withFaceDescriptor();
+
+        if (!det) {
+          st.textContent = "No clear face detected. Try again.";
+          st.className = "small fw-bold text-danger mb-2";
+          isEnrollingNow = false;
+          return;
+        }
+
+        const empName = empCache[id] || ("Employee " + id);
         const list = getEnrolledEmployees().filter(x => x.id !== id);
-        list.push({ id: id, name: empCache[id] || ("Employee " + id), descriptor: Array.from(det.descriptor) });
+        list.push({ id: id, name: empName, descriptor: Array.from(det.descriptor) });
         saveEnrolledEmployees(list);
+
+        // Maglagay ng 1-minute cooldown at isara AGAD ang camera pagkatapos mag-register
+        setEmpCooldown(id);
+        isEnrollingNow = false;
+        stopBioCamera();
+
+        st.textContent = "Registered " + empName + " (" + id + ")! Camera closed.";
+        st.className = "small fw-bold text-success mb-2";
+        $("enrollEmpId").value = "";
+        feedback(true);
+        speakLoud("Face registered.");
+
+        setResult(
+          `<div class="text-success fw-bold">${icon("fa-user-check")}FACE REGISTERED</div>` +
+          `<div class="fs-5 fw-bold text-dark mt-1">${esc(empName)} (${esc(id)})</div>` +
+          `<div class="small text-secondary fw-bold">Camera closed automatically. Pwede nang mag-scan pagkalipas ng 1 minuto.</div>`
+        );
+
         await pushFacesToCloud(pin);
-        st.textContent = "Saved Face Bio for ID " + id + "!"; st.className = "small fw-bold text-success mb-2";
-        $("enrollEmpId").value = ""; feedback(true);
-      } catch (err) { st.textContent = "Error: " + err.message; st.className = "small fw-bold text-danger mb-2"; }
-      isEnrollingNow = false;
+      } catch (err) {
+        isEnrollingNow = false;
+        st.textContent = "Error: " + err.message;
+        st.className = "small fw-bold text-danger mb-2";
+      }
     }
 
     let pendingDelete = null;
@@ -617,9 +681,15 @@
                 }
                 const marginOk = enrolled.length === 1 || (secondDist - bestDist >= 0.04);
                 if (bestMatch && bestDist <= STRICT_MATCH_THRESHOLD && marginOk) {
-                  $("bioFaceGuide").style.borderColor = "#22c55e";
-                  $("bioOverlayText").textContent = `${bestMatch.id} - ${empCache[bestMatch.id] || bestMatch.name}`;
-                  processScan(bestMatch.id);
+                  const waitSec = getEmpCooldownRemainingSec(bestMatch.id);
+                  if (waitSec > 0) {
+                    $("bioFaceGuide").style.borderColor = "#38bdf8";
+                    $("bioOverlayText").textContent = `Already Scanned (${waitSec}s cooldown)`;
+                  } else {
+                    $("bioFaceGuide").style.borderColor = "#22c55e";
+                    $("bioOverlayText").textContent = `${bestMatch.id} - ${empCache[bestMatch.id] || bestMatch.name}`;
+                    processScan(bestMatch.id);
+                  }
                 } else {
                   $("bioFaceGuide").style.borderColor = "#f59e0b";
                   $("bioOverlayText").textContent = "Face not recognized";
@@ -635,16 +705,26 @@
       }
     }
 
-    /* ---------- INSTANT PROCESS SCAN (0.1s RESPONSE + BACKGROUND SYNC) ---------- */
+    /* ---------- INSTANT PROCESS SCAN WITH 1-MINUTE COOLDOWN PER EMPLOYEE ---------- */
     function processScan(rawCode) {
       const id = String(rawCode || "").trim();
       if (!id || busy) return;
-      if (id === lastId && Date.now() - lastTime < 5000) return;
+
+      // 1-Minute Cooldown Check per Employee ID
+      const waitSec = getEmpCooldownRemainingSec(id);
+      if (waitSec > 0) {
+        const cachedName = empCache[id] || ("Employee " + id);
+        setResult(
+          `<div class="text-primary fw-bold">${icon("fa-hourglass-half")}ALREADY SCANNED: ${esc(cachedName)}</div>` +
+          `<div class="small text-dark mt-1">Maghintay muna ng <b>${waitSec} seconds</b> (1-min cooldown) bago mag-scan ulit.</div>`
+        );
+        return;
+      }
 
       if (currentScanMode === "prodout") {
         const st = getProductionOutClientStatus();
         if (!st.open) {
-          lastId = id; lastTime = Date.now();
+          setEmpCooldown(id);
           feedback(false);
           speakLoud("Not yet time for production out.");
           setResult(
@@ -656,8 +736,7 @@
       }
 
       busy = true;
-      lastId = id;
-      lastTime = Date.now();
+      setEmpCooldown(id); // I-lock agad ng 1 minuto para sa empleyadong ito
       resetBioIdleTimer();
 
       const cachedName = empCache[id] || ("Employee " + id);
@@ -690,6 +769,7 @@
         .then(function (res) {
           busy = false;
           if (!res || !res.success) {
+            delete empCooldownMap[id]; // I-reset cooldown kung nag-error para pwedeng ulitin
             feedback(false);
             speakLoud("Error.");
             setResult(ERR + esc((res && res.message) || "Scan failed."));
@@ -725,6 +805,7 @@
         })
         .catch(function () {
           busy = false;
+          delete empCooldownMap[id];
           feedback(false);
           setResult(ERR + "Connection error. Check internet and Apps Script deployment.");
         });
