@@ -1118,6 +1118,10 @@
     }
 
     /* ---------- PROCESS SCAN (BREAK OR PRODUCTION OUT) ---------- */
+    let empLastBreakCache = {};
+    try { empLastBreakCache = JSON.parse(localStorage.getItem("empLastBreakCache") || "{}"); } catch (e) {}
+
+    /* ---------- INSTANT PROCESS SCAN (0.1s RESPONSE + BACKGROUND SYNC) ---------- */
     function processScan(rawCode) {
       const id = String(rawCode || "").trim();
       if (!id || busy) return;
@@ -1142,15 +1146,41 @@
       lastTime = Date.now();
       resetBioIdleTimer();
 
-      const cachedName = empCache[id];
-      const modeLabel = currentScanMode === "prodout" ? "Logging Production Out" : "Logging Break";
-      setResult(SPIN + (cachedName ? `${modeLabel} for <b>${esc(cachedName)}</b>...` : `${modeLabel} (${esc(id)})...`));
+      const cachedName = empCache[id] || ("Employee " + id);
+      const nowTimeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
+      // 1. INSTANT FEEDBACK AGAD (Wala nang hintay sa loading!)
+      if (currentScanMode === "prodout") {
+        feedback(true);
+        speakLoud("Production out recorded. Thank you.");
+        setResult(
+          `<div class="text-success fw-bold">${icon("fa-door-open")}PRODUCTION OUT RECORDED</div>` +
+          `<div class="fs-5 fw-bold text-dark mt-1">${esc(cachedName)} (${esc(id)})</div>` +
+          `<div class="small text-secondary fw-bold">${esc(nowTimeStr)} &bull; <span class="text-primary"><i class="fa-solid fa-cloud-arrow-up"></i> Syncing...</span></div>`
+        );
+      } else {
+        // Tantyahin agad kung BREAK OUT o BREAK IN base sa huling scan para instant ang boses
+        const prev = empLastBreakCache[id];
+        const isLikelyBreakIn = prev && prev.action === "OUT" && (Date.now() - prev.ts < 8 * 3600 * 1000);
+        const instantLabel = isLikelyBreakIn ? "BREAK IN" : "BREAK OUT";
+        const elapsedMins = isLikelyBreakIn ? Math.max(0, Math.round((Date.now() - prev.ts) / 60000)) : null;
+
+        feedback(true);
+        speakLoud("Thank you.");
+        setResult(
+          `<div class="text-success fw-bold">${icon("fa-circle-check")}${instantLabel}</div>` +
+          `<div class="fs-5 fw-bold text-dark mt-1">${esc(cachedName)} (${esc(id)})</div>` +
+          `<div class="small text-secondary fw-bold">${esc(nowTimeStr)}${elapsedMins != null ? " &bull; ~" + elapsedMins + " mins" : ""} &bull; <span class="text-primary"><i class="fa-solid fa-cloud-arrow-up"></i> Syncing...</span></div>`
+        );
+      }
+
+      // 2. I-SAVE SA GOOGLE SHEET SA BACKGROUND
       callServer(id, currentScanMode)
         .then(function (res) {
           busy = false;
           if (!res || !res.success) {
             feedback(false);
+            speakLoud("Error.");
             setResult(ERR + esc((res && res.message) || "Scan failed."));
             return;
           }
@@ -1160,24 +1190,25 @@
             try { localStorage.setItem("empNameCache", JSON.stringify(empCache)); } catch (e) {}
           }
 
-          const isOver = res.remarks && res.remarks.indexOf("OVERBREAK") !== -1;
-          feedback(!isOver);
-
           if (currentScanMode === "prodout") {
-            speakLoud("Production out recorded. Thank you.");
             setResult(
               `<div class="text-success fw-bold">${icon("fa-door-open")}PRODUCTION OUT RECORDED</div>` +
               `<div class="fs-5 fw-bold text-dark mt-1">${esc(res.name)} (${esc(res.id)})</div>` +
               `<div class="small text-secondary fw-bold">${esc(res.action)} &bull; ${esc(res.time)}</div>` +
               `<div class="badge bg-success mt-1">${esc(res.remarks)}</div>`
             );
-            setTimeout(() => setScanMode("break"), 2500);
+            setTimeout(() => setScanMode("break"), 2000);
           } else {
+            const isOut = String(res.action || "").toUpperCase().indexOf("BREAK OUT") !== -1;
+            empLastBreakCache[id] = { action: isOut ? "OUT" : "IN", ts: Date.now() };
+            try { localStorage.setItem("empLastBreakCache", JSON.stringify(empLastBreakCache)); } catch (e) {}
+
+            const isOver = res.remarks && res.remarks.indexOf("OVERBREAK") !== -1;
             if (isOver) {
+              feedback(false);
               speakLoud("Warning! Over break.");
-            } else {
-              speakLoud("Thank you.");
             }
+
             setResult(
               `<div class="${isOver ? "text-danger" : "text-success"} fw-bold">${icon(isOver ? "fa-triangle-exclamation" : "fa-circle-check")}${esc(res.action)}</div>` +
               `<div class="fs-5 fw-bold text-dark mt-1">${esc(res.name)} (${esc(res.id)})</div>` +
@@ -1192,8 +1223,6 @@
           setResult(ERR + "Connection error. Check internet and Apps Script deployment.");
         });
     }
-
-    function submitManualId() {
       unlockAudio();
       const inp = $("manualEmpId");
       const val = inp.value.trim();
