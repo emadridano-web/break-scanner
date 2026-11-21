@@ -1118,7 +1118,8 @@
     }
 
     /* ---------- PROCESS SCAN (BREAK OR PRODUCTION OUT) ---------- */
-    let empLastBreakCache = {};
+    function processScan(rawCode) {
+      let empLastBreakCache = {};
     try { empLastBreakCache = JSON.parse(localStorage.getItem("empLastBreakCache") || "{}"); } catch (e) {}
 
     /* ---------- INSTANT PROCESS SCAN (0.1s RESPONSE + BACKGROUND SYNC) ---------- */
@@ -1223,6 +1224,7 @@
           setResult(ERR + "Connection error. Check internet and Apps Script deployment.");
         });
     }
+    function submitManualId() {
       unlockAudio();
       const inp = $("manualEmpId");
       const val = inp.value.trim();
