@@ -8,159 +8,38 @@
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/dist/face-api.js"></script>
-
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&family=Rajdhani:wght@600;700&display=swap');
-
     body {
       background: #ffffff url('logo.png') no-repeat center center fixed;
       background-size: min(98vw, 750px) auto;
       font-family: 'Rajdhani', sans-serif;
-      margin: 0; padding: 0;
-      min-height: 100vh;
-      display: flex; flex-direction: column;
-      color: #1e293b;
+      margin: 0; padding: 0; min-height: 100vh;
+      display: flex; flex-direction: column; color: #1e293b;
     }
-
-    body::before {
-      content: ""; position: fixed; inset: 0;
-      background: rgba(255, 255, 255, 0.25); z-index: -1;
-    }
-    .top-header {
-      background: rgba(255, 255, 255, 0.94); backdrop-filter: blur(10px);
-      border-bottom: 3px solid #dc2626; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-      color: #0f172a;
-    }
-    h3, .orbitron {
-      font-family: 'Orbitron', sans-serif; letter-spacing: 1px; font-weight: 800;
-    }
+    body::before { content: ""; position: fixed; inset: 0; background: rgba(255,255,255,0.25); z-index: -1; }
+    .top-header { background: rgba(255,255,255,0.94); backdrop-filter: blur(10px); border-bottom: 3px solid #dc2626; box-shadow: 0 4px 15px rgba(0,0,0,0.08); color: #0f172a; }
+    h3, .orbitron { font-family: 'Orbitron', sans-serif; letter-spacing: 1px; font-weight: 800; }
     h3 { color: #b91c1c; }
-    .bg-card {
-      background: rgba(255, 255, 255, 0.9) !important; backdrop-filter: blur(8px);
-      border: 1px solid rgba(220, 38, 38, 0.3) !important; border-radius: 14px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
-      color: #1e293b;
-    }
-
-    .mode-switch-bar {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 12px;
-    }
-    .mode-btn {
-      flex: 1;
-      padding: 11px 8px;
-      border-radius: 12px;
-      font-family: 'Orbitron', sans-serif;
-      font-size: 0.78rem;
-      font-weight: 800;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .bio-reader-wrap {
-      position: relative;
-      width: 100%;
-      max-width: 340px;
-      height: 300px;
-      margin: 0 auto 12px auto;
-      border: 3px solid #dc2626;
-      border-radius: 16px;
-      overflow: hidden;
-      background: #0f172a;
-      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
-      transition: border-color 0.25s ease;
-    }
-    #bioVideo {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-    #bioVideo.mirror {
-      transform: scaleX(-1);
-    }
-    .bio-face-guide {
-      position: absolute;
-      top: 50%; left: 50%;
-      width: 190px; height: 220px;
-      transform: translate(-50%, -50%);
-      border: 3px dashed rgba(255, 255, 255, 0.75);
-      border-radius: 50%;
-      pointer-events: none;
-      box-shadow: 0 0 0 999px rgba(15, 23, 42, 0.28);
-      transition: border-color 0.2s ease;
-    }
-    .bio-badge-overlay {
-      position: absolute;
-      bottom: 10px; left: 50%;
-      transform: translateX(-50%);
-      background: rgba(15, 23, 42, 0.85);
-      color: #ffffff;
-      padding: 4px 12px;
-      border-radius: 20px;
-      font-size: 0.85rem;
-      font-weight: 700;
-      white-space: nowrap;
-      max-width: 92%;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    #camSelect {
-      background-color: #ffffff;
-      color: #0f172a;
-      border: 1px solid #cbd5e1;
-    }
-    .result-box {
-      font-family: 'Orbitron', sans-serif; font-size: 1.05rem;
-      background: rgba(248, 250, 252, 0.95); border: 2px solid rgba(220, 38, 38, 0.35);
-      border-radius: 10px; padding: 14px; margin-top: 14px;
-      color: #0f172a;
-      box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.04);
-    }
-    .form-control {
-      background-color: #ffffff !important;
-      border: 1px solid #cbd5e1; color: #0f172a !important;
-    }
-    .form-control:focus {
-      border-color: #dc2626;
-      box-shadow: 0 0 0 0.2rem rgba(220, 38, 38, 0.2);
-    }
-    .form-control::placeholder { color: #94a3b8; }
+    .bg-card { background: rgba(255,255,255,0.9) !important; backdrop-filter: blur(8px); border: 1px solid rgba(220,38,38,0.3) !important; border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,0.12); color: #1e293b; }
+    .mode-switch-bar { display: flex; gap: 8px; margin-bottom: 12px; }
+    .mode-btn { flex: 1; padding: 11px 8px; border-radius: 12px; font-family: 'Orbitron', sans-serif; font-size: 0.78rem; font-weight: 800; cursor: pointer; transition: all 0.2s ease; }
+    .bio-reader-wrap { position: relative; width: 100%; max-width: 340px; height: 300px; margin: 0 auto 12px auto; border: 3px solid #dc2626; border-radius: 16px; overflow: hidden; background: #0f172a; box-shadow: 0 6px 20px rgba(0,0,0,0.15); transition: border-color 0.25s ease; }
+    #bioVideo { width: 100%; height: 100%; object-fit: cover; }
+    #bioVideo.mirror { transform: scaleX(-1); }
+    .bio-face-guide { position: absolute; top: 50%; left: 50%; width: 190px; height: 220px; transform: translate(-50%,-50%); border: 3px dashed rgba(255,255,255,0.75); border-radius: 50%; pointer-events: none; box-shadow: 0 0 0 999px rgba(15,23,42,0.28); transition: border-color 0.2s ease; }
+    .bio-badge-overlay { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); background: rgba(15,23,42,0.85); color: #fff; padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 700; white-space: nowrap; max-width: 92%; overflow: hidden; text-overflow: ellipsis; }
+    #camSelect { background-color: #fff; color: #0f172a; border: 1px solid #cbd5e1; }
+    .result-box { font-family: 'Orbitron', sans-serif; font-size: 1.05rem; background: rgba(248,250,252,0.95); border: 2px solid rgba(220,38,38,0.35); border-radius: 10px; padding: 14px; margin-top: 14px; color: #0f172a; box-shadow: inset 0 2px 6px rgba(0,0,0,0.04); }
+    .form-control { background-color: #fff !important; border: 1px solid #cbd5e1; color: #0f172a !important; }
+    .form-control:focus { border-color: #dc2626; box-shadow: 0 0 0 0.2rem rgba(220,38,38,0.2); }
     .btn-mobile { padding: 12px; font-size: 1.02rem; font-family: 'Orbitron', sans-serif; font-weight: 700; }
-
-    .face-cam-wrap {
-      position: relative;
-      width: 200px;
-      height: 200px;
-      margin: 0 auto 10px auto;
-      border-radius: 50%;
-      overflow: hidden;
-      border: 4px solid #dc2626;
-      background: #0f172a;
-      box-shadow: 0 4px 15px rgba(220, 38, 38, 0.25);
-    }
-    #faceVideo {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      transform: scaleX(-1);
-    }
-
-    .stat-card {
-      border-radius: 14px;
-      padding: 16px 18px;
-      border: 1px solid rgba(0,0,0,0.1);
-      background: #ffffff;
-      box-shadow: 0 3px 10px rgba(0,0,0,0.06);
-    }
+    .face-cam-wrap { position: relative; width: 200px; height: 200px; margin: 0 auto 10px auto; border-radius: 50%; overflow: hidden; border: 4px solid #dc2626; background: #0f172a; box-shadow: 0 4px 15px rgba(220,38,38,0.25); }
+    #faceVideo { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+    .stat-card { border-radius: 14px; padding: 16px 18px; border: 1px solid rgba(0,0,0,0.1); background: #fff; box-shadow: 0 3px 10px rgba(0,0,0,0.06); }
     .stat-label { font-size: 0.95rem; letter-spacing: 0.5px; }
     .stat-num { font-family: 'Orbitron', sans-serif; font-size: 2.3rem; font-weight: 900; line-height: 1.15; }
-    .table-dash th {
-      font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.5px;
-      background: #e2e8f0; color: #0f172a; padding: 12px 10px;
-      position: sticky; top: 0; z-index: 1; white-space: nowrap;
-    }
+    .table-dash th { font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.5px; background: #e2e8f0; color: #0f172a; padding: 12px 10px; position: sticky; top: 0; z-index: 1; white-space: nowrap; }
     .table-dash td { vertical-align: middle; font-size: 1.1rem; padding: 12px 10px; }
     .table-dash .badge { font-size: 0.9rem; padding: 6px 10px; }
   </style>
@@ -176,7 +55,7 @@
         <button class="btn btn-dark btn-sm fw-bold shadow-sm px-3 py-2" onclick="openDashboardAuth()">
           <i class="fa-solid fa-chart-pie me-1 text-warning"></i>Dashboard
         </button>
-        <div class="mt-1"><small class="badge bg-danger">v36 Ultra-Strict 0.34 + 2-Step Lock</small></div>
+        <div class="mt-1"><small class="badge bg-danger">v37 Fast 0.38 + Prod Out Lock</small></div>
       </div>
     </div>
   </header>
@@ -185,25 +64,20 @@
     <div class="row justify-content-center">
       <div class="col-md-6 col-lg-5">
         <div class="p-3 p-md-4 bg-card text-center">
-
           <div id="warn" class="alert alert-warning small text-start d-none"></div>
 
-          <!-- SEPARATE MODE SWITCHER: BREAK IN/OUT vs PRODUCTION OUT (UWIAN) -->
           <div class="mode-switch-bar">
-            <button type="button" id="modeBreakBtn" class="mode-btn" onclick="setScanMode('break')"
-                    style="border: 2px solid #15803d; background: #15803d; color: #ffffff;">
+            <button type="button" id="modeBreakBtn" class="mode-btn" onclick="setScanMode('break')" style="border:2px solid #15803d;background:#15803d;color:#fff;">
               <i class="fa-solid fa-mug-hot d-block mb-1 fs-5"></i>BREAK IN / OUT
             </button>
-            <button type="button" id="modeProdOutBtn" class="mode-btn" onclick="setScanMode('prodout')"
-                    style="border: 2px solid #ea580c; background: #ffffff; color: #ea580c;">
+            <button type="button" id="modeProdOutBtn" class="mode-btn" onclick="setScanMode('prodout')" style="border:2px solid #ea580c;background:#fff;color:#ea580c;">
               <i class="fa-solid fa-door-open d-block mb-1 fs-5"></i>PRODUCTION OUT
-              <span id="prodOutWindowTag" class="d-block" style="font-family:'Rajdhani',sans-serif; font-size:0.75rem; font-weight:700;">6AM / 3PM / 6PM</span>
+              <span id="prodOutWindowTag" class="d-block" style="font-family:'Rajdhani',sans-serif;font-size:0.75rem;font-weight:700;">6AM / 3PM / 6PM</span>
             </button>
           </div>
 
           <div id="prodOutScheduleBanner" class="alert alert-warning py-2 px-3 small fw-bold d-none mb-2"></div>
 
-          <!-- Main Employee Face Biometric Camera -->
           <div class="bio-reader-wrap" id="bioReaderWrap">
             <video id="bioVideo" class="mirror" autoplay muted playsinline></video>
             <div class="bio-face-guide" id="bioFaceGuide"></div>
@@ -229,75 +103,56 @@
             <i class="fa-solid fa-stop me-2"></i>Stop Camera
           </button>
 
-          <!-- Enroll / Manage Employee Face Biometric -->
           <div class="mt-2 text-start border-top pt-3">
             <button class="btn btn-dark w-100 fw-bold mb-2" type="button" onclick="toggleEnrollBox()">
               <i class="fa-solid fa-user-plus me-2 text-warning"></i>Enroll / Manage Employee Face Bio
             </button>
             <div id="enrollBox" class="d-none p-3 border border-dark rounded bg-light mb-2">
-              <div class="small text-dark fw-bold mb-2">
-                <i class="fa-solid fa-id-badge text-danger me-1"></i>Fast Register Employee Face
-              </div>
+              <div class="small text-dark fw-bold mb-2"><i class="fa-solid fa-id-badge text-danger me-1"></i>Fast Register Employee Face</div>
               <input type="text" id="enrollEmpId" class="form-control mb-2" placeholder="Employee ID (e.g. 001)" inputmode="numeric">
-              <input type="tel" id="enrollPin" name="enroll_pin_noconflict" autocomplete="one-time-code"
-                     class="form-control mb-2" style="-webkit-text-security: disc;"
-                     placeholder="Supervisor PIN" inputmode="numeric">
+              <input type="tel" id="enrollPin" name="enroll_pin_noconflict" autocomplete="one-time-code" class="form-control mb-2" style="-webkit-text-security:disc;" placeholder="Supervisor PIN" inputmode="numeric">
               <div id="enrollStatus" class="small fw-bold text-primary mb-2 d-none"></div>
               <div class="d-grid gap-2">
                 <button class="btn btn-danger fw-bold" id="btnCaptureEmpFace" type="button" onclick="enrollEmployeeFace()">
                   <i class="fa-solid fa-camera me-1"></i>Capture &amp; Save Employee Face
                 </button>
               </div>
-
               <div id="enrolledListSection" class="mt-3 pt-2 border-top d-none">
                 <button type="button" class="btn btn-outline-secondary btn-sm w-100 fw-bold d-flex justify-content-between align-items-center" onclick="toggleEnrolledListDrawer()">
-                  <span><i class="fa-solid fa-users-viewfinder me-1 text-danger"></i><span id="enrolledDrawerBtnText">Show Registered Faces (<span id="enrolledListCount">0</span>)</span></span>
+                  <span><i class="fa-solid fa-users-viewfinder me-1 text-danger"></i>Show Registered Faces (<span id="enrolledListCount">0</span>)</span>
                   <i class="fa-solid fa-chevron-down" id="enrolledDrawerChevron"></i>
                 </button>
-
                 <div id="enrolledListDrawer" class="d-none mt-2 p-2 bg-white border rounded">
                   <div class="d-flex justify-content-between align-items-center mb-1 pb-1 border-bottom">
                     <span class="small fw-bold text-muted"><i class="fa-solid fa-lock text-danger me-1"></i>Protected List</span>
-                    <button type="button" class="btn btn-outline-danger btn-sm py-0 px-2 fw-bold" onclick="promptDeleteAction('EMP_ALL', '', 'ALL Enrolled Employee Faces')">
-                      Clear All
-                    </button>
+                    <button type="button" class="btn btn-outline-danger btn-sm py-0 px-2 fw-bold" onclick="promptDeleteAction('EMP_ALL','','ALL Enrolled Employee Faces')">Clear All</button>
                   </div>
-                  <div id="enrolledEmpList" class="list-group list-group-flush small mt-1" style="max-height: 160px; overflow-y: auto;"></div>
+                  <div id="enrolledEmpList" class="list-group list-group-flush small mt-1" style="max-height:160px;overflow-y:auto;"></div>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- Manual Employee ID Backup -->
           <div class="mt-2 text-start border-top pt-3">
             <label class="form-label small text-dark fw-bold" id="manualBackupLabel">
               <i class="fa-solid fa-keyboard me-1 text-danger"></i>Manual Employee ID Backup (Break Mode)
             </label>
             <div class="input-group">
-              <input type="text" id="manualEmpId" class="form-control" placeholder="Enter ID (e.g. 001)"
-                     inputmode="numeric" onkeydown="if(event.key==='Enter') submitManualId()">
-              <button class="btn btn-danger fw-bold" id="btnManualLog" onclick="submitManualId()">
-                <i class="fa-solid fa-arrow-right"></i> Log
-              </button>
+              <input type="text" id="manualEmpId" class="form-control" placeholder="Enter ID (e.g. 001)" inputmode="numeric" onkeydown="if(event.key==='Enter') submitManualId()">
+              <button class="btn btn-danger fw-bold" id="btnManualLog" onclick="submitManualId()"><i class="fa-solid fa-arrow-right"></i> Log</button>
             </div>
           </div>
 
-          <!-- Forgot to Break In -->
           <div class="mt-3 text-start">
             <button class="btn btn-sm btn-outline-primary w-100 fw-bold bg-white" type="button" onclick="toggleFix()">
               <i class="fa-solid fa-clock-rotate-left me-1"></i>Forgot to Break In?
             </button>
             <div id="fixBox" class="d-none mt-2 p-3 border border-primary rounded bg-light">
-              <div class="small text-primary fw-bold mb-2">For employees still ON BREAK who forgot to scan back in. Enter the ACTUAL time they came back.</div>
+              <div class="small text-primary fw-bold mb-2">Enter ACTUAL break-in time for employees still ON BREAK.</div>
               <input type="text" id="fixId" class="form-control mb-2" placeholder="Employee ID" inputmode="numeric">
-              <label class="form-label small text-dark fw-bold mb-1">Actual break-in time</label>
               <input type="time" id="fixTime" class="form-control mb-2">
-              <input type="tel" id="fixPin" name="fix_pin_noconflict" autocomplete="one-time-code"
-                     class="form-control mb-2" style="-webkit-text-security: disc;"
-                     placeholder="Supervisor PIN" inputmode="numeric">
-              <button class="btn btn-primary w-100 fw-bold" type="button" onclick="submitFix()">
-                <i class="fa-solid fa-floppy-disk me-1"></i>Save Break In
-              </button>
+              <input type="tel" id="fixPin" name="fix_pin_noconflict" autocomplete="one-time-code" class="form-control mb-2" style="-webkit-text-security:disc;" placeholder="Supervisor PIN" inputmode="numeric">
+              <button class="btn btn-primary w-100 fw-bold" type="button" onclick="submitFix()"><i class="fa-solid fa-floppy-disk me-1"></i>Save Break In</button>
             </div>
           </div>
 
@@ -307,8 +162,8 @@
     </div>
   </div>
 
-  <!-- Password Confirmation Modal for Deleting Any Face Bio -->
-  <div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-hidden="true" style="z-index: 1065;">
+  <!-- Confirm Delete Modal -->
+  <div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-hidden="true" style="z-index:1065;">
     <div class="modal-dialog modal-dialog-centered modal-sm">
       <div class="modal-content border-danger shadow-lg">
         <div class="modal-header bg-dark text-warning py-2">
@@ -317,15 +172,10 @@
         </div>
         <div class="modal-body text-center p-3">
           <p class="small fw-bold text-dark mb-2" id="deleteConfirmTargetText">Delete Face Bio?</p>
-          <p class="small text-muted mb-2">Enter Supervisor Password / PIN to permanently delete:</p>
-          <input type="tel" id="deleteConfirmPin" name="del_pin_noconflict" autocomplete="one-time-code"
-                 class="form-control text-center fs-5 fw-bold mb-2" style="-webkit-text-security: disc;"
-                 placeholder="••••" inputmode="numeric" onkeydown="if(event.key==='Enter') executeProtectedDelete()">
+          <input type="tel" id="deleteConfirmPin" name="del_pin_noconflict" autocomplete="one-time-code" class="form-control text-center fs-5 fw-bold mb-2" style="-webkit-text-security:disc;" placeholder="••••" inputmode="numeric" onkeydown="if(event.key==='Enter') executeProtectedDelete()">
           <div id="deleteConfirmError" class="text-danger small fw-bold mb-2 d-none"></div>
           <div class="d-grid gap-2">
-            <button type="button" class="btn btn-danger fw-bold" id="btnConfirmDeleteExec" onclick="executeProtectedDelete()">
-              <i class="fa-solid fa-trash-can me-1"></i>Verify PIN &amp; Delete
-            </button>
+            <button type="button" class="btn btn-danger fw-bold" onclick="executeProtectedDelete()"><i class="fa-solid fa-trash-can me-1"></i>Verify PIN &amp; Delete</button>
             <button type="button" class="btn btn-outline-secondary btn-sm fw-bold" data-bs-dismiss="modal">Cancel</button>
           </div>
         </div>
@@ -333,62 +183,39 @@
     </div>
   </div>
 
-  <!-- Supervisor Camera Face Recognition + PIN Prompt Modal -->
+  <!-- Supervisor Login Modal -->
   <div class="modal fade" id="pinModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
       <div class="modal-content border-danger shadow-lg">
         <div class="modal-header bg-danger text-white py-2">
-          <h6 class="modal-title orbitron mb-0"><i class="fa-solid fa-face-viewfinder me-2"></i>SUPERVISOR FACE LOGIN</h6>
+          <h6 class="modal-title orbitron mb-0"><i class="fa-solid fa-face-viewfinder me-2"></i>SUPERVISOR LOGIN</h6>
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body text-center p-3">
           <div id="faceCameraSection" class="d-none mb-2">
-            <div class="face-cam-wrap" id="faceCamWrap">
-              <video id="faceVideo" autoplay muted playsinline></video>
-            </div>
-            <div id="faceStatusText" class="fw-bold text-primary small mb-2">
-              <i class="fa-solid fa-spinner fa-spin me-1"></i>Starting face camera...
+            <div class="face-cam-wrap"><video id="faceVideo" autoplay muted playsinline></video></div>
+            <div id="faceStatusText" class="fw-bold text-primary small mb-2">Starting face camera...</div>
+          </div>
+          <div class="mx-auto" style="max-width:290px;">
+            <input type="tel" id="dashPinInput" name="dash_pin_noconflict" autocomplete="one-time-code" class="form-control text-center fs-5 fw-bold mb-2" style="-webkit-text-security:disc;" placeholder="Supervisor PIN (••••)" inputmode="numeric" onkeydown="if(event.key==='Enter') verifyDashboardPin()">
+            <input type="text" id="faceLabelInput" class="form-control text-center fw-bold mb-2" placeholder="Name / Label (e.g. Sup. Juan)">
+            <div id="pinError" class="text-danger small fw-bold mb-2 d-none"></div>
+            <div class="d-grid gap-2">
+              <button class="btn btn-danger fw-bold" onclick="verifyDashboardPin()"><i class="fa-solid fa-unlock me-1"></i>Open Dashboard</button>
+              <button class="btn btn-dark fw-bold" onclick="startFaceRegistration()"><i class="fa-solid fa-user-plus me-1 text-warning"></i>Register Supervisor Face</button>
             </div>
           </div>
-
-          <div id="pinFallbackSection">
-            <p class="small text-muted mb-2" id="pinPromptLabel">Enter Supervisor PIN to open or register a Face</p>
-
-            <div class="mx-auto" style="max-width: 290px;">
-              <input type="tel" id="dashPinInput" name="dash_pin_noconflict" autocomplete="one-time-code"
-                     class="form-control text-center fs-5 fw-bold mb-2" style="-webkit-text-security: disc;"
-                     placeholder="Supervisor PIN (••••)" inputmode="numeric" onkeydown="if(event.key==='Enter') verifyDashboardPin()">
-
-              <input type="text" id="faceLabelInput" class="form-control text-center fw-bold mb-2"
-                     placeholder="Name / Label (e.g. Sup. Juan)">
-
-              <div id="pinError" class="text-danger small fw-bold mb-2 d-none"></div>
-
-              <div class="d-grid gap-2">
-                <button class="btn btn-danger fw-bold" id="btnUnlockDash" onclick="verifyDashboardPin()">
-                  <i class="fa-solid fa-unlock me-1"></i>Open with PIN
-                </button>
-                <button class="btn btn-dark fw-bold" id="btnRegisterFace" onclick="startFaceRegistration()">
-                  <i class="fa-solid fa-user-plus me-1 text-warning"></i>Add / Register Supervisor Face
-                </button>
+          <div id="registeredFacesSection" class="mt-3 pt-2 border-top text-start mx-auto d-none" style="max-width:310px;">
+            <button type="button" class="btn btn-outline-secondary btn-sm w-100 fw-bold d-flex justify-content-between align-items-center" onclick="toggleSupListDrawer()">
+              <span><i class="fa-solid fa-user-shield me-1 text-danger"></i>Show Supervisor Faces (<span id="faceCountBadge">0</span>)</span>
+              <i class="fa-solid fa-chevron-down" id="supDrawerChevron"></i>
+            </button>
+            <div id="registeredFacesBox" class="d-none mt-2 p-2 bg-light border rounded">
+              <div class="d-flex justify-content-between align-items-center mb-1 pb-1 border-bottom">
+                <span class="small fw-bold text-muted">Protected List</span>
+                <button type="button" class="btn btn-outline-danger btn-sm py-0 px-2 fw-bold" onclick="promptDeleteAction('SUP_ALL','','ALL Supervisor Faces')">Remove All</button>
               </div>
-            </div>
-
-            <div id="registeredFacesSection" class="mt-3 pt-2 border-top text-start mx-auto d-none" style="max-width: 310px;">
-              <button type="button" class="btn btn-outline-secondary btn-sm w-100 fw-bold d-flex justify-content-between align-items-center" onclick="toggleSupListDrawer()">
-                <span><i class="fa-solid fa-user-shield me-1 text-danger"></i><span id="supDrawerBtnText">Show Supervisor Faces (<span id="faceCountBadge">0</span>)</span></span>
-                <i class="fa-solid fa-chevron-down" id="supDrawerChevron"></i>
-              </button>
-
-              <div id="registeredFacesBox" class="d-none mt-2 p-2 bg-light border rounded">
-                <div class="d-flex justify-content-between align-items-center mb-1 pb-1 border-bottom">
-                  <span class="small fw-bold text-muted"><i class="fa-solid fa-lock me-1 text-danger"></i>Protected List</span>
-                  <button type="button" class="btn btn-outline-danger btn-sm py-0 px-2 fw-bold" onclick="promptDeleteAction('SUP_ALL', '', 'ALL Supervisor Faces')">
-                    Remove All
-                  </button>
-                </div>
-                <div id="registeredFacesList" class="list-group list-group-flush small mt-1"></div>
-              </div>
+              <div id="registeredFacesList" class="list-group list-group-flush small mt-1"></div>
             </div>
           </div>
         </div>
@@ -396,115 +223,58 @@
     </div>
   </div>
 
-  <!-- Full-Screen Supervisor Dashboard Modal -->
+  <!-- Dashboard Modal -->
   <div class="modal fade" id="dashboardModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-fullscreen modal-dialog-scrollable">
       <div class="modal-content bg-light">
         <div class="modal-header bg-dark text-white py-3 px-4">
           <div>
-            <h4 class="modal-title orbitron text-warning mb-0 fs-4">
-              <i class="fa-solid fa-chart-pie me-2"></i>BREAK MONITOR DASHBOARD
-            </h4>
+            <h4 class="modal-title orbitron text-warning mb-0 fs-4"><i class="fa-solid fa-chart-pie me-2"></i>BREAK MONITOR DASHBOARD</h4>
             <div class="text-light opacity-75 fs-6" id="dashLastUpdated">Loading live data...</div>
           </div>
           <div class="d-flex gap-2 align-items-center">
-            <button class="btn btn-warning fw-bold px-3 py-2" onclick="loadDashboardData()">
-              <i class="fa-solid fa-arrows-rotate me-1" id="dashSpinIcon"></i>Refresh
-            </button>
-            <button type="button" class="btn btn-outline-light fw-bold px-3 py-2" data-bs-dismiss="modal">
-              <i class="fa-solid fa-xmark me-1"></i>Close
-            </button>
+            <button class="btn btn-warning fw-bold px-3 py-2" onclick="loadDashboardData()"><i class="fa-solid fa-arrows-rotate me-1"></i>Refresh</button>
+            <button type="button" class="btn btn-outline-light fw-bold px-3 py-2" data-bs-dismiss="modal"><i class="fa-solid fa-xmark me-1"></i>Close</button>
           </div>
         </div>
-
         <div class="modal-body p-3 p-md-4">
           <div class="row g-3 mb-4">
-            <div class="col-6 col-lg-3">
-              <div class="stat-card border-start border-5 border-primary">
-                <div class="stat-label text-muted fw-bold">ON BREAK (REGULAR)</div>
-                <div class="stat-num text-primary" id="statOnRegular">0</div>
-              </div>
-            </div>
-            <div class="col-6 col-lg-3">
-              <div class="stat-card border-start border-5 border-warning">
-                <div class="stat-label text-muted fw-bold">ON BREAK (AGENCY)</div>
-                <div class="stat-num text-warning" id="statOnAgency">0</div>
-              </div>
-            </div>
-            <div class="col-6 col-lg-3">
-              <div class="stat-card border-start border-5 border-success">
-                <div class="stat-label text-muted fw-bold">COMPLETED (12H SHIFT)</div>
-                <div class="stat-num text-success" id="statCompleted">0</div>
-              </div>
-            </div>
-            <div class="col-6 col-lg-3">
-              <div class="stat-card border-start border-5 border-danger">
-                <div class="stat-label text-muted fw-bold">OVERBREAKS (12H SHIFT)</div>
-                <div class="stat-num text-danger" id="statOverbreak">0</div>
-              </div>
-            </div>
+            <div class="col-6 col-lg-3"><div class="stat-card border-start border-5 border-primary"><div class="stat-label text-muted fw-bold">ON BREAK (REGULAR)</div><div class="stat-num text-primary" id="statOnRegular">0</div></div></div>
+            <div class="col-6 col-lg-3"><div class="stat-card border-start border-5 border-warning"><div class="stat-label text-muted fw-bold">ON BREAK (AGENCY)</div><div class="stat-num text-warning" id="statOnAgency">0</div></div></div>
+            <div class="col-6 col-lg-3"><div class="stat-card border-start border-5 border-success"><div class="stat-label text-muted fw-bold">COMPLETED (12H SHIFT)</div><div class="stat-num text-success" id="statCompleted">0</div></div></div>
+            <div class="col-6 col-lg-3"><div class="stat-card border-start border-5 border-danger"><div class="stat-label text-muted fw-bold">OVERBREAKS (12H SHIFT)</div><div class="stat-num text-danger" id="statOverbreak">0</div></div></div>
           </div>
-
           <div class="card border-0 shadow-sm mb-4">
             <div class="card-body p-3 d-flex flex-wrap gap-3 justify-content-between align-items-center">
-              <div class="btn-group" role="group">
+              <div class="btn-group">
                 <button type="button" class="btn btn-dark fw-bold px-3 py-2 active" id="filterAll" onclick="setDashFilter('ALL')">All</button>
                 <button type="button" class="btn btn-outline-primary fw-bold px-3 py-2" id="filterRegular" onclick="setDashFilter('Regular')">Regular</button>
                 <button type="button" class="btn btn-outline-warning text-dark fw-bold px-3 py-2" id="filterAgency" onclick="setDashFilter('Agency')">Agency</button>
               </div>
-              <div class="input-group" style="max-width: 360px;">
+              <div class="input-group" style="max-width:360px;">
                 <span class="input-group-text bg-white"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
                 <input type="text" id="dashSearch" class="form-control fs-6" placeholder="Search Name, ID, or Position..." oninput="renderDashboardTables()">
               </div>
             </div>
           </div>
-
           <div class="card border-0 shadow-sm mb-4">
             <div class="card-header bg-white py-3 fw-bold text-danger fs-5 d-flex justify-content-between align-items-center">
               <span><i class="fa-solid fa-person-walking-arrow-right me-2"></i>CURRENTLY ON BREAK (LIVE TIMER)</span>
               <span class="badge bg-danger fs-6 px-3 py-2" id="onBreakBadge">0</span>
             </div>
-            <div class="table-responsive" style="max-height: 360px;">
+            <div class="table-responsive" style="max-height:360px;">
               <table class="table table-hover table-dash mb-0">
-                <thead>
-                  <tr>
-                    <th>ID</th>
-                    <th>Employee Name</th>
-                    <th>Position</th>
-                    <th>Status</th>
-                    <th>Break</th>
-                    <th>Time Out</th>
-                    <th>Elapsed / Limit</th>
-                  </tr>
-                </thead>
-                <tbody id="onBreakTbody">
-                  <tr><td colspan="7" class="text-center text-muted py-4 fs-5">Loading...</td></tr>
-                </tbody>
+                <thead><tr><th>ID</th><th>Employee Name</th><th>Position</th><th>Status</th><th>Break</th><th>Time Out</th><th>Elapsed / Limit</th></tr></thead>
+                <tbody id="onBreakTbody"><tr><td colspan="7" class="text-center text-muted py-4 fs-5">Loading...</td></tr></tbody>
               </table>
             </div>
           </div>
-
           <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white py-3 fw-bold text-dark fs-5">
-              <i class="fa-solid fa-clock-rotate-left me-2 text-primary"></i>RECENT BREAK LOGS (CURRENT SHIFT)
-            </div>
-            <div class="table-responsive" style="max-height: 420px;">
+            <div class="card-header bg-white py-3 fw-bold text-dark fs-5"><i class="fa-solid fa-clock-rotate-left me-2 text-primary"></i>RECENT BREAK LOGS (CURRENT SHIFT)</div>
+            <div class="table-responsive" style="max-height:420px;">
               <table class="table table-striped table-dash mb-0">
-                <thead>
-                  <tr>
-                    <th>Time</th>
-                    <th>ID</th>
-                    <th>Employee Name</th>
-                    <th>Position</th>
-                    <th>Status</th>
-                    <th>Action</th>
-                    <th>Duration</th>
-                    <th>Remarks</th>
-                  </tr>
-                </thead>
-                <tbody id="recentLogsTbody">
-                  <tr><td colspan="8" class="text-center text-muted py-4 fs-5">Loading...</td></tr>
-                </tbody>
+                <thead><tr><th>Time</th><th>ID</th><th>Employee Name</th><th>Position</th><th>Status</th><th>Action</th><th>Duration</th><th>Remarks</th></tr></thead>
+                <tbody id="recentLogsTbody"><tr><td colspan="8" class="text-center text-muted py-4 fs-5">Loading...</td></tr></tbody>
               </table>
             </div>
           </div>
@@ -515,161 +285,110 @@
 
   <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbyTMnYv-UpwMECFwCqn9aMNIPG5d9E_Uk2AFMMBNpdGfaSly5yBg_y1jbcxeKy0kYFlcQ/exec";
-
-    // ULTRA-STRICT BIOMETRIC THRESHOLD (0.34 = hindi magkakamali sa kahawig na empleyado)
     const STRICT_MATCH_THRESHOLD = 0.38;
-    // 2-STEP FACE LOCK: Kailangan 2 beses magkasunod na tugma bago mag-log
-    const REQUIRED_CONSECUTIVE_MATCHES = 1;
-
     const IDLE_TIMEOUT_MS = 5 * 60 * 1000;
-    const SHIFT_OUT_HOURS = [6, 15, 18]; // 6:00 AM, 3:00 PM, 6:00 PM
+    const SHIFT_OUT_HOURS = [6, 15, 18];
     const PROD_OUT_GRACE_WINDOW_MINS = 120;
 
-    let currentScanMode = "break"; // "break" or "prodout"
+    let currentScanMode = "break";
     let busy = false, cameraOn = false;
     let bioStream = null, bioLoopActive = false, isEnrollingNow = false;
-    let lastBioActivityMs = Date.now();
-    let idleCheckTimer = null;
-
-    // 2-Step Verification Tracker
-    let pendingMatchId = "";
-    let pendingMatchCount = 0;
-
-    let facing = "user";
-    let camId = "";
+    let lastBioActivityMs = Date.now(), idleCheckTimer = null;
+    let facing = "user", camId = "";
     try { camId = localStorage.getItem("frontCamId") || ""; } catch (e) {}
-
-    let lastId = "", lastTime = 0;
-    let audioCtx = null;
-
-    let empCache = {};
+    let lastId = "", lastTime = 0, audioCtx = null;
+    let empCache = {}, empLastBreakCache = {};
     try { empCache = JSON.parse(localStorage.getItem("empNameCache") || "{}"); } catch (e) {}
+    try { empLastBreakCache = JSON.parse(localStorage.getItem("empLastBreakCache") || "{}"); } catch (e) {}
 
     const $ = id => document.getElementById(id);
-    const esc = s => String(s).replace(/[&<>"']/g, c =>
-      ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     const icon = cls => '<i class="fa-solid ' + cls + ' me-2"></i>';
     const setResult = html => { $("result").innerHTML = html; };
     const SPIN = icon("fa-spinner fa-spin text-warning");
     const ERR = icon("fa-triangle-exclamation text-danger");
 
-    function resetPendingFaceLock() {
-      pendingMatchId = "";
-      pendingMatchCount = 0;
-    }
-
-    /* ---------- PRODUCTION OUT TIME LOCK CHECKER (6AM, 3PM, 6PM) ---------- */
     function getProductionOutClientStatus() {
-      const now = new Date();
-      const nowMs = now.getTime();
+      const now = new Date(), nowMs = now.getTime();
       const windowMs = PROD_OUT_GRACE_WINDOW_MINS * 60 * 1000;
       let nextUpcoming = null;
-
-      for (let dayOffset = -1; dayOffset <= 1; dayOffset++) {
+      for (let d = -1; d <= 1; d++) {
         for (let i = 0; i < SHIFT_OUT_HOURS.length; i++) {
           const cand = new Date(now);
-          cand.setDate(cand.getDate() + dayOffset);
+          cand.setDate(cand.getDate() + d);
           cand.setHours(SHIFT_OUT_HOURS[i], 0, 0, 0);
-          const startMs = cand.getTime();
-          const endMs = startMs + windowMs;
-          if (nowMs >= startMs && nowMs <= endMs) {
-            const lbl = cand.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            return { open: true, label: lbl };
+          const sMs = cand.getTime();
+          if (nowMs >= sMs && nowMs <= sMs + windowMs) {
+            return { open: true, label: cand.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) };
           }
-          if (startMs > nowMs && (!nextUpcoming || startMs < nextUpcoming.getTime())) {
-            nextUpcoming = cand;
-          }
+          if (sMs > nowMs && (!nextUpcoming || sMs < nextUpcoming.getTime())) nextUpcoming = cand;
         }
       }
-      const nextLbl = nextUpcoming.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      const minsLeft = Math.ceil((nextUpcoming.getTime() - nowMs) / 60000);
-      return { open: false, nextLabel: nextLbl, minsLeft: minsLeft };
+      return {
+        open: false,
+        nextLabel: nextUpcoming.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        minsLeft: Math.ceil((nextUpcoming.getTime() - nowMs) / 60000)
+      };
     }
 
     function updateProdOutStatusUI() {
-      const st = getProductionOutClientStatus();
-      const tag = $("prodOutWindowTag");
-      const banner = $("prodOutScheduleBanner");
+      const st = getProductionOutClientStatus(), tag = $("prodOutWindowTag"), banner = $("prodOutScheduleBanner");
       if (st.open) {
         tag.innerHTML = `<i class="fa-solid fa-lock-open"></i> OPEN (${st.label})`;
         if (currentScanMode === "prodout") {
           banner.className = "alert alert-success py-2 px-3 small fw-bold mb-2";
-          banner.innerHTML = `<i class="fa-solid fa-door-open me-1"></i>PRODUCTION OUT OPEN (${st.label} Shift) - Ready to scan!`;
+          banner.innerHTML = `<i class="fa-solid fa-door-open me-1"></i>PRODUCTION OUT OPEN (${st.label} Shift) - Ready!`;
           banner.classList.remove("d-none");
-        } else {
-          banner.classList.add("d-none");
-        }
+        } else banner.classList.add("d-none");
       } else {
         tag.innerHTML = `<i class="fa-solid fa-lock"></i> Next: ${st.nextLabel}`;
         if (currentScanMode === "prodout") {
           banner.className = "alert alert-danger py-2 px-3 small fw-bold mb-2";
           banner.innerHTML = `<i class="fa-solid fa-lock me-1"></i>LOCKED: Hindi pa oras ng Out. Bukas sa <b>${st.nextLabel}</b> (${st.minsLeft} mins pa).`;
           banner.classList.remove("d-none");
-        } else {
-          banner.classList.add("d-none");
-        }
+        } else banner.classList.add("d-none");
       }
     }
 
     function setScanMode(mode) {
       currentScanMode = mode;
-      resetPendingFaceLock();
-      const bBtn = $("modeBreakBtn");
-      const pBtn = $("modeProdOutBtn");
-      const wrap = $("bioReaderWrap");
-      const manualLbl = $("manualBackupLabel");
-      const manualBtn = $("btnManualLog");
-
+      const bBtn = $("modeBreakBtn"), pBtn = $("modeProdOutBtn"), wrap = $("bioReaderWrap");
       if (mode === "prodout") {
-        pBtn.style.background = "#ea580c"; pBtn.style.color = "#ffffff";
-        bBtn.style.background = "#ffffff"; bBtn.style.color = "#15803d";
+        pBtn.style.background = "#ea580c"; pBtn.style.color = "#fff";
+        bBtn.style.background = "#fff"; bBtn.style.color = "#15803d";
         wrap.style.borderColor = "#ea580c";
-        manualLbl.innerHTML = '<i class="fa-solid fa-door-open me-1 text-warning"></i>Manual ID Backup (<b>PRODUCTION OUT MODE</b>)';
-        manualBtn.className = "btn btn-warning fw-bold";
+        $("manualBackupLabel").innerHTML = '<i class="fa-solid fa-door-open me-1 text-warning"></i>Manual ID Backup (<b>PRODUCTION OUT MODE</b>)';
+        $("btnManualLog").className = "btn btn-warning fw-bold";
       } else {
-        bBtn.style.background = "#15803d"; bBtn.style.color = "#ffffff";
-        pBtn.style.background = "#ffffff"; pBtn.style.color = "#ea580c";
+        bBtn.style.background = "#15803d"; bBtn.style.color = "#fff";
+        pBtn.style.background = "#fff"; pBtn.style.color = "#ea580c";
         wrap.style.borderColor = "#dc2626";
-        manualLbl.innerHTML = '<i class="fa-solid fa-keyboard me-1 text-danger"></i>Manual Employee ID Backup (Break Mode)';
-        manualBtn.className = "btn btn-danger fw-bold";
+        $("manualBackupLabel").innerHTML = '<i class="fa-solid fa-keyboard me-1 text-danger"></i>Manual Employee ID Backup (Break Mode)';
+        $("btnManualLog").className = "btn btn-danger fw-bold";
       }
       updateProdOutStatusUI();
     }
-
     setInterval(updateProdOutStatusUI, 15000);
 
-    function inAppsScript() {
-      return typeof google !== "undefined" && google.script && google.script.run;
-    }
-
     function preloadEmployees() {
-      const handler = function (res) {
+      fetch(API_URL + "?action=employees").then(r => r.json()).then(res => {
         if (res && res.success && res.employees) {
           empCache = Object.assign(empCache, res.employees);
           try { localStorage.setItem("empNameCache", JSON.stringify(empCache)); } catch (e) {}
           renderEnrolledEmployees();
         }
-      };
-      if (inAppsScript()) {
-        google.script.run.withSuccessHandler(handler).getEmployeeDirectory();
-      } else {
-        fetch(API_URL + "?action=employees").then(r => r.json()).then(handler).catch(() => {});
-      }
+      }).catch(() => {});
     }
 
     async function syncFacesFromCloud() {
-      if (inAppsScript()) return;
       try {
         const res = await fetch(API_URL + "?action=getfaces").then(r => r.json());
         if (res && res.success) {
-          const localEmp = getEnrolledEmployees();
-          const localSup = getSavedFaceProfiles();
-
-          if (Array.isArray(res.empFaces) && res.empFaces.length > 0 && localEmp.length === 0) {
+          if (Array.isArray(res.empFaces) && res.empFaces.length > 0 && getEnrolledEmployees().length === 0) {
             localStorage.setItem("empFaceBioList", JSON.stringify(res.empFaces));
             renderEnrolledEmployees();
           }
-          if (Array.isArray(res.supFaces) && res.supFaces.length > 0 && localSup.length === 0) {
+          if (Array.isArray(res.supFaces) && res.supFaces.length > 0 && getSavedFaceProfiles().length === 0) {
             localStorage.setItem("supFaceProfiles", JSON.stringify(res.supFaces));
             renderSavedFacesList();
           }
@@ -680,19 +399,12 @@
     }
 
     async function pushFacesToCloud(pin) {
-      if (inAppsScript() || !pin) return;
+      if (!pin) return;
       try {
-        const payload = {
-          action: "savefaces",
-          pin: pin,
-          empFaces: getEnrolledEmployees(),
-          supFaces: getSavedFaceProfiles()
-        };
         const res = await fetch(API_URL, {
           method: "POST",
-          body: JSON.stringify(payload)
+          body: JSON.stringify({ action: "savefaces", pin: pin, empFaces: getEnrolledEmployees(), supFaces: getSavedFaceProfiles() })
         }).then(r => r.json());
-
         if (res && res.success) {
           $("cloudSyncBadge").className = "ms-2 badge bg-success";
           $("cloudSyncBadge").innerHTML = '<i class="fa-solid fa-cloud-check me-1"></i>Cloud Protected';
@@ -701,71 +413,19 @@
     }
 
     function callServer(id, mode) {
-      if (inAppsScript()) {
-        return new Promise(function (resolve, reject) {
-          if (mode === "prodout") {
-            google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).logProductionOut(id);
-          } else {
-            google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).scanEmployee(id);
-          }
-        });
-      }
-      const url = mode === "prodout"
-        ? `${API_URL}?action=prodout&id=${encodeURIComponent(id)}`
-        : `${API_URL}?id=${encodeURIComponent(id)}`;
-
-      return fetch(url)
-        .then(function (r) { return r.text(); })
-        .then(function (t) {
-          try { return JSON.parse(t); }
-          catch (e) { throw new Error("NOT_JSON"); }
-        });
+      const url = mode === "prodout" ? `${API_URL}?action=prodout&id=${encodeURIComponent(id)}` : `${API_URL}?id=${encodeURIComponent(id)}`;
+      return fetch(url).then(r => r.text()).then(t => JSON.parse(t));
     }
 
     window.addEventListener("load", function () {
-      preloadEmployees();
-      renderEnrolledEmployees();
-      syncFacesFromCloud();
-      updateProdOutStatusUI();
+      preloadEmployees(); renderEnrolledEmployees(); syncFacesFromCloud(); updateProdOutStatusUI();
       setTimeout(() => { loadFaceModels().catch(() => {}); }, 300);
-
-      const ua = navigator.userAgent || "";
-      const warn = [];
-      if (typeof faceapi === "undefined") {
-        warn.push("Face Biometric AI library failed to load. Check your internet connection and reload.");
-      }
-      if (/FBAN|FBAV|FB_IAB|Messenger|Instagram|Line\/|TikTok/i.test(ua)) {
-        warn.push("You opened this inside Messenger/Facebook, which blocks the camera. Open in Chrome or Safari.");
-      }
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        warn.push("This browser can't open a live camera. Use Chrome or Safari.");
-      }
-      if (warn.length) {
-        $("warn").innerHTML = warn.join("<br><br>");
-        $("warn").classList.remove("d-none");
-      }
     });
-
-    function cameraErrorMessage(err) {
-      const text = String((err && (err.name + ": " + err.message)) || err);
-      if (/NotAllowed|Permission|denied/i.test(text))
-        return "Camera permission is blocked. Allow Camera in site settings and reload.";
-      if (/NotFound|no camera|Requested device not found/i.test(text))
-        return "No camera found on this device.";
-      if (/NotReadable|in use|Could not start/i.test(text))
-        return "Camera is being used by another app.";
-      return "Could not start camera (" + text + ").";
-    }
 
     function unlockAudio() {
       try {
         if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         if (audioCtx.state === "suspended") audioCtx.resume();
-        if ('speechSynthesis' in window) {
-          const silent = new SpeechSynthesisUtterance("");
-          silent.volume = 0;
-          window.speechSynthesis.speak(silent);
-        }
       } catch (e) {}
     }
 
@@ -773,35 +433,28 @@
       try {
         if ('speechSynthesis' in window) {
           window.speechSynthesis.cancel();
-          const speech = new SpeechSynthesisUtterance(text);
-          speech.lang = "en-US";
-          speech.volume = 1;
-          speech.rate = 0.98;
-          speech.pitch = 1;
-          window.speechSynthesis.speak(speech);
+          const s = new SpeechSynthesisUtterance(text);
+          s.lang = "en-US"; s.volume = 1; s.rate = 1.0;
+          window.speechSynthesis.speak(s);
         }
       } catch (e) {}
     }
 
     function feedback(ok) {
-      try { if (navigator.vibrate) navigator.vibrate(ok ? 100 : [120, 80, 120]); } catch (e) {}
+      try { if (navigator.vibrate) navigator.vibrate(ok ? 90 : [120, 80, 120]); } catch (e) {}
       try {
         if (!audioCtx) return;
         const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-        o.frequency.value = ok ? 920 : 240;
-        g.gain.value = 0.18;
+        o.frequency.value = ok ? 920 : 240; g.gain.value = 0.18;
         o.connect(g); g.connect(audioCtx.destination);
-        o.start(); o.stop(audioCtx.currentTime + (ok ? 0.12 : 0.3));
+        o.start(); o.stop(audioCtx.currentTime + (ok ? 0.12 : 0.28));
       } catch (e) {}
     }
 
-    /* ---------- FACE MODELS & DESCRIPTORS ---------- */
     const FACE_MODEL_URL = "https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/model";
     let faceModelsLoaded = false;
-
     async function loadFaceModels() {
-      if (faceModelsLoaded) return true;
-      if (typeof faceapi === "undefined") return false;
+      if (faceModelsLoaded || typeof faceapi === "undefined") return faceModelsLoaded;
       await Promise.all([
         faceapi.nets.tinyFaceDetector.loadFromUri(FACE_MODEL_URL),
         faceapi.nets.faceLandmark68Net.loadFromUri(FACE_MODEL_URL),
@@ -813,18 +466,13 @@
 
     function euclideanDist(a, b) {
       let sum = 0;
-      for (let i = 0; i < a.length; i++) {
-        const d = a[i] - b[i];
-        sum += d * d;
-      }
+      for (let i = 0; i < a.length; i++) { const d = a[i] - b[i]; sum += d * d; }
       return Math.sqrt(sum);
     }
 
     function getEnrolledEmployees() {
-      try { return JSON.parse(localStorage.getItem("empFaceBioList") || "[]"); }
-      catch (e) { return []; }
+      try { return JSON.parse(localStorage.getItem("empFaceBioList") || "[]"); } catch (e) { return []; }
     }
-
     function saveEnrolledEmployees(list) {
       try { localStorage.setItem("empFaceBioList", JSON.stringify(list)); } catch (e) {}
       renderEnrolledEmployees();
@@ -833,209 +481,111 @@
     function renderEnrolledEmployees() {
       const list = getEnrolledEmployees();
       $("enrolledEmpCount").textContent = list.length;
-      const section = $("enrolledListSection");
-      const container = $("enrolledEmpList");
-      if (!list.length) {
-        section.classList.add("d-none");
-        return;
-      }
-      section.classList.remove("d-none");
+      const sec = $("enrolledListSection");
+      if (!list.length) { sec.classList.add("d-none"); return; }
+      sec.classList.remove("d-none");
       $("enrolledListCount").textContent = list.length;
-      container.innerHTML = list.map(item => {
+      $("enrolledEmpList").innerHTML = list.map(item => {
         const name = empCache[item.id] || item.name || ("Employee " + item.id);
         return `<div class="list-group-item d-flex justify-content-between align-items-center px-1 py-1">
           <span><b>${esc(item.id)}</b> - ${esc(name)}</span>
-          <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="promptDeleteAction('EMP_ONE', '${esc(item.id)}', '${esc(item.id + " - " + name)}')">
-            <i class="fa-solid fa-trash"></i>
-          </button>
+          <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="promptDeleteAction('EMP_ONE','${esc(item.id)}','${esc(item.id + " - " + name)}')"><i class="fa-solid fa-trash"></i></button>
         </div>`;
       }).join("");
     }
 
-    function toggleEnrollBox() {
-      $("enrollBox").classList.toggle("d-none");
-    }
-
+    function toggleEnrollBox() { $("enrollBox").classList.toggle("d-none"); }
     function toggleEnrolledListDrawer() {
       const d = $("enrolledListDrawer");
-      const chev = $("enrolledDrawerChevron");
       d.classList.toggle("d-none");
-      chev.className = d.classList.contains("d-none") ? "fa-solid fa-chevron-down" : "fa-solid fa-chevron-up";
+      $("enrolledDrawerChevron").className = d.classList.contains("d-none") ? "fa-solid fa-chevron-down" : "fa-solid fa-chevron-up";
     }
 
     async function enrollEmployeeFace() {
-      const id = $("enrollEmpId").value.trim();
-      const pin = $("enrollPin").value.trim();
-      const st = $("enrollStatus");
-      if (!id || !pin) {
-        st.textContent = "Enter Employee ID and Supervisor PIN.";
-        st.className = "small fw-bold text-danger mb-2";
-        st.classList.remove("d-none");
-        return;
-      }
-      if (!cameraOn) {
-        st.textContent = "Start the camera first before capturing face.";
-        st.className = "small fw-bold text-danger mb-2";
-        st.classList.remove("d-none");
-        return;
-      }
-
+      const id = $("enrollEmpId").value.trim(), pin = $("enrollPin").value.trim(), st = $("enrollStatus");
+      if (!id || !pin) { st.textContent = "Enter Employee ID and Supervisor PIN."; st.className = "small fw-bold text-danger mb-2"; st.classList.remove("d-none"); return; }
+      if (!cameraOn) { st.textContent = "Start camera first."; st.className = "small fw-bold text-danger mb-2"; st.classList.remove("d-none"); return; }
       isEnrollingNow = true;
-      resetPendingFaceLock();
-      st.textContent = "Scanning face... Look straight at the camera.";
-      st.className = "small fw-bold text-primary mb-2";
-      st.classList.remove("d-none");
-
+      st.textContent = "Scanning face... Look straight at the camera."; st.className = "small fw-bold text-primary mb-2"; st.classList.remove("d-none");
       try {
         await loadFaceModels();
-        const det = await faceapi
-          .detectSingleFace($("bioVideo"), new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.60 }))
-          .withFaceLandmarks()
-          .withFaceDescriptor();
-
-        if (!det) {
-          st.textContent = "No clear face detected. Move closer, ensure good lighting, and try again.";
-          st.className = "small fw-bold text-danger mb-2";
-          isEnrollingNow = false;
-          return;
-        }
-
+        const det = await faceapi.detectSingleFace($("bioVideo"), new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.60 })).withFaceLandmarks().withFaceDescriptor();
+        if (!det) { st.textContent = "No clear face detected. Try again."; st.className = "small fw-bold text-danger mb-2"; isEnrollingNow = false; return; }
         const list = getEnrolledEmployees().filter(x => x.id !== id);
-        list.push({
-          id: id,
-          name: empCache[id] || ("Employee " + id),
-          descriptor: Array.from(det.descriptor)
-        });
+        list.push({ id: id, name: empCache[id] || ("Employee " + id), descriptor: Array.from(det.descriptor) });
         saveEnrolledEmployees(list);
         await pushFacesToCloud(pin);
-
-        st.textContent = "Saved Ultra-Strict Face Bio for ID " + id + "!";
-        st.className = "small fw-bold text-success mb-2";
-        $("enrollEmpId").value = "";
-        feedback(true);
-      } catch (err) {
-        st.textContent = "Error: " + err.message;
-        st.className = "small fw-bold text-danger mb-2";
-      }
+        st.textContent = "Saved Face Bio for ID " + id + "!"; st.className = "small fw-bold text-success mb-2";
+        $("enrollEmpId").value = ""; feedback(true);
+      } catch (err) { st.textContent = "Error: " + err.message; st.className = "small fw-bold text-danger mb-2"; }
       isEnrollingNow = false;
     }
 
-    /* ---------- PROTECTED DELETE MODAL ---------- */
     let pendingDelete = null;
     function promptDeleteAction(type, id, label) {
       pendingDelete = { type, id, label };
       $("deleteConfirmTargetText").textContent = "Delete " + label + "?";
-      $("deleteConfirmPin").value = "";
-      $("deleteConfirmError").classList.add("d-none");
+      $("deleteConfirmPin").value = ""; $("deleteConfirmError").classList.add("d-none");
       new bootstrap.Modal($("confirmDeleteModal")).show();
     }
 
     async function executeProtectedDelete() {
-      const pin = $("deleteConfirmPin").value.trim();
-      const errEl = $("deleteConfirmError");
-      if (!pin) {
-        errEl.textContent = "Enter Supervisor PIN.";
-        errEl.classList.remove("d-none");
-        return;
-      }
+      const pin = $("deleteConfirmPin").value.trim(), errEl = $("deleteConfirmError");
+      if (!pin) { errEl.textContent = "Enter Supervisor PIN."; errEl.classList.remove("d-none"); return; }
       try {
-        const verifyRes = await fetch(`${API_URL}?action=dashboard&pin=${encodeURIComponent(pin)}`).then(r => r.json());
-        if (!verifyRes || !verifyRes.success) {
-          errEl.textContent = (verifyRes && verifyRes.message) || "Wrong Supervisor PIN.";
-          errEl.classList.remove("d-none");
-          return;
-        }
-        if (pendingDelete.type === "EMP_ONE") {
-          saveEnrolledEmployees(getEnrolledEmployees().filter(x => x.id !== pendingDelete.id));
-        } else if (pendingDelete.type === "EMP_ALL") {
-          saveEnrolledEmployees([]);
-        } else if (pendingDelete.type === "SUP_ONE") {
-          saveSavedFaceProfiles(getSavedFaceProfiles().filter((_, idx) => String(idx) !== String(pendingDelete.id)));
-        } else if (pendingDelete.type === "SUP_ALL") {
-          saveSavedFaceProfiles([]);
-        }
+        const res = await fetch(`${API_URL}?action=dashboard&pin=${encodeURIComponent(pin)}`).then(r => r.json());
+        if (!res || !res.success) { errEl.textContent = "Wrong Supervisor PIN."; errEl.classList.remove("d-none"); return; }
+        if (pendingDelete.type === "EMP_ONE") saveEnrolledEmployees(getEnrolledEmployees().filter(x => x.id !== pendingDelete.id));
+        else if (pendingDelete.type === "EMP_ALL") saveEnrolledEmployees([]);
+        else if (pendingDelete.type === "SUP_ONE") saveSavedFaceProfiles(getSavedFaceProfiles().filter((_, i) => String(i) !== String(pendingDelete.id)));
+        else if (pendingDelete.type === "SUP_ALL") saveSavedFaceProfiles([]);
         await pushFacesToCloud(pin);
         bootstrap.Modal.getInstance($("confirmDeleteModal")).hide();
         feedback(true);
-      } catch (e) {
-        errEl.textContent = "Connection error. Check internet.";
-        errEl.classList.remove("d-none");
-      }
+      } catch (e) { errEl.textContent = "Connection error."; errEl.classList.remove("d-none"); }
     }
 
-    /* ---------- MAIN CAMERA & AUTO-SLEEP (5 MINS) ---------- */
-    function resetBioIdleTimer() {
-      lastBioActivityMs = Date.now();
-    }
+    function resetBioIdleTimer() { lastBioActivityMs = Date.now(); }
 
     async function startBioCamera() {
-      unlockAudio();
-      resetBioIdleTimer();
-      resetPendingFaceLock();
+      unlockAudio(); resetBioIdleTimer();
       try {
-        if (bioStream) {
-          bioStream.getTracks().forEach(t => t.stop());
-        }
-        const constraints = camId
-          ? { video: { deviceId: { exact: camId } }, audio: false }
-          : { video: { facingMode: facing }, audio: false };
-
+        if (bioStream) bioStream.getTracks().forEach(t => t.stop());
+        const constraints = camId ? { video: { deviceId: { exact: camId } }, audio: false } : { video: { facingMode: facing }, audio: false };
         bioStream = await navigator.mediaDevices.getUserMedia(constraints);
         $("bioVideo").srcObject = bioStream;
         $("bioVideo").classList.toggle("mirror", facing === "user");
         cameraOn = true;
-
-        $("btnStart").classList.add("d-none");
-        $("btnSwitch").classList.remove("d-none");
-        $("btnStop").classList.remove("d-none");
+        $("btnStart").classList.add("d-none"); $("btnSwitch").classList.remove("d-none"); $("btnStop").classList.remove("d-none");
         $("bioOverlayText").textContent = "Loading AI Face Models...";
-
         await loadFaceModels();
         populateCameraList();
         $("bioOverlayText").textContent = "Ready - Align Face in Oval";
-
-        if (!bioLoopActive) {
-          bioLoopActive = true;
-          runBioRecognitionLoop();
-        }
+        if (!bioLoopActive) { bioLoopActive = true; runBioRecognitionLoop(); }
         if (idleCheckTimer) clearInterval(idleCheckTimer);
         idleCheckTimer = setInterval(() => {
-          if (cameraOn && Date.now() - lastBioActivityMs > IDLE_TIMEOUT_MS) {
-            stopBioCamera("Camera auto-paused after 5 mins idle. Tap START to scan.");
-          }
+          if (cameraOn && Date.now() - lastBioActivityMs > IDLE_TIMEOUT_MS) stopBioCamera("Camera auto-paused after 5 mins idle.");
         }, 5000);
-      } catch (err) {
-        setResult(ERR + cameraErrorMessage(err));
-      }
+      } catch (err) { setResult(ERR + "Could not start camera: " + err.message); }
     }
 
     function stopBioCamera(msg) {
-      cameraOn = false;
-      bioLoopActive = false;
-      resetPendingFaceLock();
+      cameraOn = false; bioLoopActive = false;
       if (idleCheckTimer) clearInterval(idleCheckTimer);
-      if (bioStream) {
-        bioStream.getTracks().forEach(t => t.stop());
-        bioStream = null;
-      }
-      $("bioVideo").srcObject = null;
-      $("bioOverlayText").textContent = "Camera Off";
-      $("btnStart").classList.remove("d-none");
-      $("btnSwitch").classList.add("d-none");
-      $("btnStop").classList.add("d-none");
+      if (bioStream) { bioStream.getTracks().forEach(t => t.stop()); bioStream = null; }
+      $("bioVideo").srcObject = null; $("bioOverlayText").textContent = "Camera Off";
+      $("btnStart").classList.remove("d-none"); $("btnSwitch").classList.add("d-none"); $("btnStop").classList.add("d-none");
       if (msg) setResult(icon("fa-moon text-secondary") + esc(msg));
     }
 
     async function switchCamera() {
-      facing = facing === "user" ? "environment" : "user";
-      camId = "";
+      facing = facing === "user" ? "environment" : "user"; camId = "";
       $("switchLabel").textContent = facing === "user" ? "Switch to Back Camera" : "Switch to Front Camera";
       await startBioCamera();
     }
 
     async function chooseCamera(id) {
-      camId = id;
-      try { localStorage.setItem("frontCamId", id); } catch (e) {}
+      camId = id; try { localStorage.setItem("frontCamId", id); } catch (e) {}
       await startBioCamera();
     }
 
@@ -1045,82 +595,45 @@
         const cams = devices.filter(d => d.kind === "videoinput");
         if (cams.length > 1) {
           $("camPicker").classList.remove("d-none");
-          $("camSelect").innerHTML = cams.map((c, idx) =>
-            `<option value="${esc(c.deviceId)}" ${c.deviceId === camId ? "selected" : ""}>${esc(c.label || ("Camera " + (idx + 1)))}</option>`
-          ).join("");
+          $("camSelect").innerHTML = cams.map((c, idx) => `<option value="${esc(c.deviceId)}" ${c.deviceId === camId ? "selected" : ""}>${esc(c.label || ("Camera " + (idx + 1)))}</option>`).join("");
         }
       } catch (e) {}
     }
 
-    /* ---------- 2-STEP ULTRA-STRICT RECOGNITION LOOP (0.34 THRESHOLD) ---------- */
     async function runBioRecognitionLoop() {
       while (cameraOn && bioLoopActive) {
         if (!busy && !isEnrollingNow && $("bioVideo").readyState >= 2) {
           try {
             const enrolled = getEnrolledEmployees();
             if (enrolled.length > 0 && faceModelsLoaded) {
-              const det = await faceapi
-                .detectSingleFace($("bioVideo"), new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.72 }))
-                .withFaceLandmarks()
-                .withFaceDescriptor();
-
+              const det = await faceapi.detectSingleFace($("bioVideo"), new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.60 })).withFaceLandmarks().withFaceDescriptor();
               if (det) {
                 resetBioIdleTimer();
-                let bestMatch = null;
-                let bestDist = 1.0;
-
+                let bestMatch = null, bestDist = 1.0, secondDist = 1.0;
                 for (let i = 0; i < enrolled.length; i++) {
                   const dist = euclideanDist(det.descriptor, enrolled[i].descriptor);
-                  if (dist < bestDist) {
-                    bestDist = dist;
-                    bestMatch = enrolled[i];
-                  }
+                  if (dist < bestDist) { secondDist = bestDist; bestDist = dist; bestMatch = enrolled[i]; }
+                  else if (dist < secondDist) { secondDist = dist; }
                 }
-
-                if (bestMatch && bestDist <= STRICT_MATCH_THRESHOLD) {
-                  if (pendingMatchId === bestMatch.id) {
-                    pendingMatchCount++;
-                  } else {
-                    pendingMatchId = bestMatch.id;
-                    pendingMatchCount = 1;
-                  }
-
-                  const empDisplayName = empCache[bestMatch.id] || bestMatch.name;
-
-                  if (pendingMatchCount >= REQUIRED_CONSECUTIVE_MATCHES) {
-                    $("bioFaceGuide").style.borderColor = "#22c55e";
-                    $("bioOverlayText").textContent = `VERIFIED: ${bestMatch.id} - ${empDisplayName}`;
-                    resetPendingFaceLock();
-                    processScan(bestMatch.id);
-                  } else {
-                    $("bioFaceGuide").style.borderColor = "#38bdf8";
-                    $("bioOverlayText").textContent = `Hold still (${pendingMatchCount}/${REQUIRED_CONSECUTIVE_MATCHES}): ${empDisplayName}...`;
-                  }
+                const marginOk = enrolled.length === 1 || (secondDist - bestDist >= 0.04);
+                if (bestMatch && bestDist <= STRICT_MATCH_THRESHOLD && marginOk) {
+                  $("bioFaceGuide").style.borderColor = "#22c55e";
+                  $("bioOverlayText").textContent = `${bestMatch.id} - ${empCache[bestMatch.id] || bestMatch.name}`;
+                  processScan(bestMatch.id);
                 } else {
-                  resetPendingFaceLock();
                   $("bioFaceGuide").style.borderColor = "#f59e0b";
-                  $("bioOverlayText").textContent = "Face not recognized (Strict 0.34)";
+                  $("bioOverlayText").textContent = "Face not recognized";
                 }
               } else {
-                resetPendingFaceLock();
                 $("bioFaceGuide").style.borderColor = "rgba(255,255,255,0.75)";
-                $("bioOverlayText").textContent = currentScanMode === "prodout"
-                  ? "PRODUCTION OUT MODE - Align Face"
-                  : "BREAK MODE - Align Face";
+                $("bioOverlayText").textContent = currentScanMode === "prodout" ? "PRODUCTION OUT MODE - Align Face" : "BREAK MODE - Align Face";
               }
             }
-          } catch (e) {
-            resetPendingFaceLock();
-          }
+          } catch (e) {}
         }
         await new Promise(r => setTimeout(r, 250));
       }
     }
-
-    /* ---------- PROCESS SCAN (BREAK OR PRODUCTION OUT) ---------- */
-    function processScan(rawCode) {
-      let empLastBreakCache = {};
-    try { empLastBreakCache = JSON.parse(localStorage.getItem("empLastBreakCache") || "{}"); } catch (e) {}
 
     /* ---------- INSTANT PROCESS SCAN (0.1s RESPONSE + BACKGROUND SYNC) ---------- */
     function processScan(rawCode) {
@@ -1150,7 +663,6 @@
       const cachedName = empCache[id] || ("Employee " + id);
       const nowTimeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
-      // 1. INSTANT FEEDBACK AGAD (Wala nang hintay sa loading!)
       if (currentScanMode === "prodout") {
         feedback(true);
         speakLoud("Production out recorded. Thank you.");
@@ -1160,7 +672,6 @@
           `<div class="small text-secondary fw-bold">${esc(nowTimeStr)} &bull; <span class="text-primary"><i class="fa-solid fa-cloud-arrow-up"></i> Syncing...</span></div>`
         );
       } else {
-        // Tantyahin agad kung BREAK OUT o BREAK IN base sa huling scan para instant ang boses
         const prev = empLastBreakCache[id];
         const isLikelyBreakIn = prev && prev.action === "OUT" && (Date.now() - prev.ts < 8 * 3600 * 1000);
         const instantLabel = isLikelyBreakIn ? "BREAK IN" : "BREAK OUT";
@@ -1175,7 +686,6 @@
         );
       }
 
-      // 2. I-SAVE SA GOOGLE SHEET SA BACKGROUND
       callServer(id, currentScanMode)
         .then(function (res) {
           busy = false;
@@ -1185,12 +695,10 @@
             setResult(ERR + esc((res && res.message) || "Scan failed."));
             return;
           }
-
           if (res.name) {
             empCache[id] = res.name;
             try { localStorage.setItem("empNameCache", JSON.stringify(empCache)); } catch (e) {}
           }
-
           if (currentScanMode === "prodout") {
             setResult(
               `<div class="text-success fw-bold">${icon("fa-door-open")}PRODUCTION OUT RECORDED</div>` +
@@ -1205,10 +713,7 @@
             try { localStorage.setItem("empLastBreakCache", JSON.stringify(empLastBreakCache)); } catch (e) {}
 
             const isOver = res.remarks && res.remarks.indexOf("OVERBREAK") !== -1;
-            if (isOver) {
-              feedback(false);
-              speakLoud("Warning! Over break.");
-            }
+            if (isOver) { feedback(false); speakLoud("Warning! Over break."); }
 
             setResult(
               `<div class="${isOver ? "text-danger" : "text-success"} fw-bold">${icon(isOver ? "fa-triangle-exclamation" : "fa-circle-check")}${esc(res.action)}</div>` +
@@ -1224,144 +729,85 @@
           setResult(ERR + "Connection error. Check internet and Apps Script deployment.");
         });
     }
+
     function submitManualId() {
       unlockAudio();
-      const inp = $("manualEmpId");
-      const val = inp.value.trim();
+      const inp = $("manualEmpId"), val = inp.value.trim();
       if (!val) return;
       inp.value = "";
       processScan(val);
     }
 
-    /* ---------- FORGOT TO BREAK IN ---------- */
-    function toggleFix() {
-      $("fixBox").classList.toggle("d-none");
-    }
-
+    function toggleFix() { $("fixBox").classList.toggle("d-none"); }
     function submitFix() {
-      const id = $("fixId").value.trim();
-      const time = $("fixTime").value.trim();
-      const pin = $("fixPin").value.trim();
-      if (!id || !time || !pin) {
-        setResult(ERR + "Fill out Employee ID, Time, and Supervisor PIN.");
-        return;
-      }
+      const id = $("fixId").value.trim(), time = $("fixTime").value.trim(), pin = $("fixPin").value.trim();
+      if (!id || !time || !pin) { setResult(ERR + "Fill out Employee ID, Time, and Supervisor PIN."); return; }
       setResult(SPIN + "Saving manual break-in...");
       fetch(`${API_URL}?fix=in&id=${encodeURIComponent(id)}&time=${encodeURIComponent(time)}&pin=${encodeURIComponent(pin)}`)
         .then(r => r.json())
         .then(res => {
-          if (!res || !res.success) {
-            feedback(false);
-            setResult(ERR + esc((res && res.message) || "Failed to save."));
-            return;
-          }
-          feedback(true);
-          $("fixBox").classList.add("d-none");
+          if (!res || !res.success) { feedback(false); setResult(ERR + esc((res && res.message) || "Failed.")); return; }
+          feedback(true); $("fixBox").classList.add("d-none");
           setResult(`<div class="text-success fw-bold">${icon("fa-check")}Manual Fix Saved: ${esc(res.name)} (${esc(res.remarks)})</div>`);
         })
         .catch(() => setResult(ERR + "Connection error."));
     }
 
-    /* ---------- SUPERVISOR FACE LOGIN & DASHBOARD ---------- */
-    let activeDashPin = "";
-    let dashData = null;
-    let dashFilter = "ALL";
-    let supStream = null;
-
+    let activeDashPin = "", dashData = null, dashFilter = "ALL", supStream = null;
     function getSavedFaceProfiles() {
-      try { return JSON.parse(localStorage.getItem("supFaceProfiles") || "[]"); }
-      catch (e) { return []; }
+      try { return JSON.parse(localStorage.getItem("supFaceProfiles") || "[]"); } catch (e) { return []; }
     }
     function saveSavedFaceProfiles(list) {
       try { localStorage.setItem("supFaceProfiles", JSON.stringify(list)); } catch (e) {}
       renderSavedFacesList();
     }
-
     function renderSavedFacesList() {
-      const list = getSavedFaceProfiles();
-      const sec = $("registeredFacesSection");
+      const list = getSavedFaceProfiles(), sec = $("registeredFacesSection");
       if (!list.length) { sec.classList.add("d-none"); return; }
       sec.classList.remove("d-none");
       $("faceCountBadge").textContent = list.length;
       $("registeredFacesList").innerHTML = list.map((p, idx) =>
         `<div class="list-group-item d-flex justify-content-between align-items-center px-1 py-1">
           <span><b>${esc(p.label)}</b></span>
-          <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="promptDeleteAction('SUP_ONE', '${idx}', '${esc(p.label)}')">
-            <i class="fa-solid fa-trash"></i>
-          </button>
+          <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="promptDeleteAction('SUP_ONE','${idx}','${esc(p.label)}')"><i class="fa-solid fa-trash"></i></button>
         </div>`
       ).join("");
     }
-
     function toggleSupListDrawer() {
-      const b = $("registeredFacesBox");
-      const c = $("supDrawerChevron");
-      b.classList.toggle("d-none");
-      c.className = b.classList.contains("d-none") ? "fa-solid fa-chevron-down" : "fa-solid fa-chevron-up";
+      const b = $("registeredFacesBox"); b.classList.toggle("d-none");
+      $("supDrawerChevron").className = b.classList.contains("d-none") ? "fa-solid fa-chevron-down" : "fa-solid fa-chevron-up";
     }
-
     function openDashboardAuth() {
-      renderSavedFacesList();
-      $("pinError").classList.add("d-none");
+      renderSavedFacesList(); $("pinError").classList.add("d-none");
       new bootstrap.Modal($("pinModal")).show();
     }
-
     async function startFaceRegistration() {
-      const pin = $("dashPinInput").value.trim();
-      const label = $("faceLabelInput").value.trim() || "Supervisor";
-      const errEl = $("pinError");
-      if (!pin) {
-        errEl.textContent = "Enter Supervisor PIN first.";
-        errEl.classList.remove("d-none");
-        return;
-      }
+      const pin = $("dashPinInput").value.trim(), label = $("faceLabelInput").value.trim() || "Supervisor", errEl = $("pinError");
+      if (!pin) { errEl.textContent = "Enter Supervisor PIN first."; errEl.classList.remove("d-none"); return; }
       try {
         const res = await fetch(`${API_URL}?action=dashboard&pin=${encodeURIComponent(pin)}`).then(r => r.json());
-        if (!res || !res.success) {
-          errEl.textContent = "Wrong Supervisor PIN.";
-          errEl.classList.remove("d-none");
-          return;
-        }
+        if (!res || !res.success) { errEl.textContent = "Wrong Supervisor PIN."; errEl.classList.remove("d-none"); return; }
         $("faceCameraSection").classList.remove("d-none");
-        $("faceStatusText").textContent = "Look at camera to register...";
         supStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
         $("faceVideo").srcObject = supStream;
         await loadFaceModels();
-        await new Promise(r => setTimeout(r, 900));
-
-        const det = await faceapi
-          .detectSingleFace($("faceVideo"), new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.72 }))
-          .withFaceLandmarks()
-          .withFaceDescriptor();
-
+        await new Promise(r => setTimeout(r, 800));
+        const det = await faceapi.detectSingleFace($("faceVideo"), new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.60 })).withFaceLandmarks().withFaceDescriptor();
         supStream.getTracks().forEach(t => t.stop());
         $("faceCameraSection").classList.add("d-none");
-
-        if (!det) {
-          errEl.textContent = "No face detected. Try again.";
-          errEl.classList.remove("d-none");
-          return;
-        }
+        if (!det) { errEl.textContent = "No face detected."; errEl.classList.remove("d-none"); return; }
         const profiles = getSavedFaceProfiles();
         profiles.push({ label: label, descriptor: Array.from(det.descriptor), pin: pin });
         saveSavedFaceProfiles(profiles);
         await pushFacesToCloud(pin);
-        errEl.className = "text-success small fw-bold mb-2";
-        errEl.textContent = "Supervisor face registered!";
-        errEl.classList.remove("d-none");
-      } catch (e) {
-        errEl.textContent = "Error: " + e.message;
-        errEl.classList.remove("d-none");
-      }
+        errEl.className = "text-success small fw-bold mb-2"; errEl.textContent = "Supervisor face registered!"; errEl.classList.remove("d-none");
+      } catch (e) { errEl.textContent = "Error: " + e.message; errEl.classList.remove("d-none"); }
     }
-
     function verifyDashboardPin() {
       const pin = $("dashPinInput").value.trim();
       if (!pin) return;
-      activeDashPin = pin;
-      loadDashboardData(true);
+      activeDashPin = pin; loadDashboardData(true);
     }
-
     function setDashFilter(f) {
       dashFilter = f;
       ["filterAll", "filterRegular", "filterAgency"].forEach(id => $(id).classList.remove("active"));
@@ -1370,20 +816,14 @@
       if (f === "Agency") $("filterAgency").classList.add("active");
       renderDashboardTables();
     }
-
     function loadDashboardData(fromModal) {
       if (!activeDashPin) return;
       fetch(`${API_URL}?action=dashboard&pin=${encodeURIComponent(activeDashPin)}`)
         .then(r => r.json())
         .then(res => {
-          if (!res || !res.success) {
-            $("pinError").textContent = (res && res.message) || "Wrong PIN.";
-            $("pinError").classList.remove("d-none");
-            return;
-          }
+          if (!res || !res.success) { $("pinError").textContent = (res && res.message) || "Wrong PIN."; $("pinError").classList.remove("d-none"); return; }
           if (fromModal) {
-            const pm = bootstrap.Modal.getInstance($("pinModal"));
-            if (pm) pm.hide();
+            const pm = bootstrap.Modal.getInstance($("pinModal")); if (pm) pm.hide();
             new bootstrap.Modal($("dashboardModal")).show();
           }
           dashData = res;
@@ -1393,21 +833,16 @@
           $("statCompleted").textContent = res.stats.completedShift;
           $("statOverbreak").textContent = res.stats.overbreakShift;
           renderDashboardTables();
-        })
-        .catch(() => {});
+        }).catch(() => {});
     }
-
     function renderDashboardTables() {
       if (!dashData) return;
       const q = ($("dashSearch").value || "").toLowerCase();
       const filterFn = item => {
         if (dashFilter !== "ALL" && item.status !== dashFilter) return false;
         if (!q) return true;
-        return String(item.id).toLowerCase().includes(q) ||
-               String(item.name).toLowerCase().includes(q) ||
-               String(item.position).toLowerCase().includes(q);
+        return String(item.id).toLowerCase().includes(q) || String(item.name).toLowerCase().includes(q) || String(item.position).toLowerCase().includes(q);
       };
-
       const onBreakFiltered = dashData.onBreak.filter(filterFn);
       $("onBreakBadge").textContent = onBreakFiltered.length;
       $("onBreakTbody").innerHTML = onBreakFiltered.length
@@ -1415,12 +850,9 @@
             const elapsed = Math.max(0, Math.floor((Date.now() - item.tsMs) / 60000));
             const over = elapsed > item.limitMins;
             return `<tr class="${over ? "table-danger" : ""}">
-              <td class="fw-bold">${esc(item.id)}</td>
-              <td class="fw-bold">${esc(item.name)}</td>
-              <td>${esc(item.position)}</td>
+              <td class="fw-bold">${esc(item.id)}</td><td class="fw-bold">${esc(item.name)}</td><td>${esc(item.position)}</td>
               <td><span class="badge ${item.status === "Agency" ? "bg-warning text-dark" : "bg-primary"}">${esc(item.status)}</span></td>
-              <td>${esc(item.breakType)}</td>
-              <td>${esc(item.timeStr)}</td>
+              <td>${esc(item.breakType)}</td><td>${esc(item.timeStr)}</td>
               <td class="fw-bold ${over ? "text-danger" : "text-success"}">${elapsed}m / ${item.limitMins}m</td>
             </tr>`;
           }).join("")
@@ -1431,13 +863,9 @@
         ? logsFiltered.map(r => {
             const over = r.remarks && r.remarks.includes("OVERBREAK");
             return `<tr>
-              <td>${esc(r.timeStr)}</td>
-              <td class="fw-bold">${esc(r.id)}</td>
-              <td>${esc(r.name)}</td>
-              <td>${esc(r.position)}</td>
+              <td>${esc(r.timeStr)}</td><td class="fw-bold">${esc(r.id)}</td><td class="fw-bold">${esc(r.name)}</td><td>${esc(r.position)}</td>
               <td><span class="badge ${r.status === "Agency" ? "bg-warning text-dark" : "bg-primary"}">${esc(r.status)}</span></td>
-              <td class="fw-bold">${esc(r.action)}</td>
-              <td>${r.duration != null ? r.duration + "m" : "-"}</td>
+              <td class="fw-bold">${esc(r.action)}</td><td>${r.duration != null ? r.duration + "m" : "-"}</td>
               <td><span class="badge ${over ? "bg-danger" : "bg-success"}">${esc(r.remarks)}</span></td>
             </tr>`;
           }).join("")
