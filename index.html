@@ -820,7 +820,7 @@
               `<div class="small text-secondary fw-bold">${esc(res.action)} &bull; ${esc(res.time)}</div>` +
               `<div class="badge bg-success mt-1">${esc(res.remarks)}</div>`
             );
-            setTimeout(() => setScanMode("break"), 2000);
+            
           } else {
             const isOut = String(res.action || "").toUpperCase().indexOf("BREAK OUT") !== -1;
             empLastBreakCache[id] = { action: isOut ? "OUT" : "IN", ts: Date.now() };
